@@ -6,10 +6,7 @@ public class ServerController {
 		this.view = view;
 	}
 	
-	private String successfulResult = "Connection made successfully!"	
 	private boolean connect(String host, int port, String nickname) {
-        	String view.setConnectionResult(successfulResult;
- 
 		try {
                		model = new ServerModel(host, port, nickname;
 			setupListeners();
@@ -56,12 +53,14 @@ public class ServerController {
                 view.setupServerForm();
         }
 
+	//Problem function
 	public void commitNewServer(String host, int port, String nickname) {
 		if(connect(host, port, nickname)) {
-			//TODO refactor this	
-			serverButton = view.addServer(host, port);	
-			view.updateExistingServerListener((serverButton) -> updateExistingServer(serverButton));
-			view.setConnectionResult("Connection added successfully!");
+			//One button needs to be created	
+			view.addServer(host, port);
+			//Then this new button updated with an action listener to trigger updateExistingServer
+			view.updateExistingServerListener(host, port, (host, port) -> updateExistingServer);
+			view.setConnectionResult("Server added successfully!");
 		}
 	}
 
@@ -72,7 +71,7 @@ public class ServerController {
 	public void commitExistingServer(String host, int port, String nickname) {
 		if(connect(host, port, nickname)) {
 			view.updateServer(model.getHost(), model.getPort());
-			view.setConnectionResult("Connection updated successfully!");
+			view.setConnectionResult("Server updated successfully!");
 		}
 	}
 }        
