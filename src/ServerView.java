@@ -1,9 +1,8 @@
 public class ServerView extends JFrame {
-	//private HashMap<String, JButton> serverButtons = new HashMap<String, JButton>();
-	
 	private JButton addServerButton;
 	private JButton editConnectionButton;
 
+	private HashMap<String, JButton> serverButtons = new HashMap<String, JButton>(); 
 	private JPanel serverListPanel;
 
 	private JPanel formPanel;
@@ -11,6 +10,7 @@ public class ServerView extends JFrame {
 	private JTextField portField;
 	private JTextField nicknameField;
 	private JButton commitButton;
+	private JButton removeButton;
 	
 	private JLabel connectionResultLabel;
 
@@ -65,9 +65,9 @@ public class ServerView extends JFrame {
 		portField = addNewField("Port");
 		nicknameField = addNewField("Nickname");
 
-		commitButton = new JButton("[Add/update]");
-		formPanel.add(commitButton);
-
+		commitButton = addNewButton("[Add|Update]");
+		removeButton = addNewButton("Delete server");
+ 
 		connectionResultLabel = new JLabel("[connectionResult]");
 		formPanel.add(connectionResultLabel);
 
@@ -81,14 +81,18 @@ public class ServerView extends JFrame {
 		return newField;
 	}
 
+	private JTextField addNewButton(String label) {
+		JButton newButton = new JButton(label);
+		formPanel.add(newField);
+		return newButton;
+	}
 	private void toggleFormVisibility(boolean isVisible) {
 		formPanel.setVisible(isVisible);
 		revalidate();
 		repaint();
 	}
 
-	//Connection managing
-	/
+	//Public methods for connection managing
 	public void setupServerForm() {
 		commitButton.setText("Add server");
 
@@ -109,14 +113,70 @@ public class ServerView extends JFrame {
 		connectionResultLabel.setText(result);
 	}
 
+	//Adding, removing and updating the server list
 	public void addServer(String host, int port) {
-		//TODO creates server button
+		addServer(host, port, true);
+	}	
+
+	public void addServer(String host, int port, boolean refresh) {
+		String serverKey = formatServerString(host, port);
+		
+		if(serverButtons.contains(serverKey)) {
+			return;
+		}
+	
+		JButton serverValue = new JButton(serverKey);
+		serverButtons.put(serverKey, serverValue);
+		serverListPanel.add(serverValue);
+
+		if(refresh == true) {
+			redrawServerList();	
+		}
+	}
+	
+	public void removeServer(String host, int port) {
+		removeServer(host, port, true);
 	}
 
-	public void updateServer(host, port) {
+	public void removeServer(String host, int port, boolean refresh) {
+		String serverKey = formatServerString(host, port);
+		JButton buttonToRemove = serverButtons.get(serverKey);
+		
+		serverListPanel.remove(buttonToRemove);
+		serverButtons.remove(serverKey);
+	
+		if(refresh == true) {	
+			redrawServerList();
+		}
+	}
+	
+	public void updateServer(String oldHost, int oldPort, String newHost, int newPort) {
+		removeServer(oldHost, oldPort, false);
+		addServer(newHost, newPort);
+	}
+	
+	
+	public void setActive(String host, int port) {
+		String activeServerKey = formatServerString(host, port);	
+		JButton activeButton = serverButtons.get(activeServerKey);
 
+		for (String serverKey : serverButtons.keySet()) {
+			JButton buttonToToggle = serverButtons.get(serverKey);
+
+			if(serverKey.equals(activeServerKey)) {
+				buttonToToggle.setBorder(BorderFactory.createLineBorder(Color.RED, 3));
+                	} else {
+                        	buttonToToggle.setBorder(BorderFactory.createEmptyBorder());
+                	}
+		}
 	}
 
+	private void redrawServerList() {
+		serverListPanel.revalidate();
+		serverListPanel.repaint();
+	}
+
+	//Listeners
 	public void updateNewServerListener(ActionListener listener) {
 
 	}

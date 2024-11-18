@@ -62,6 +62,11 @@ public class ServerModel {
 		//
 		this.nickname = nickname;
 	}
+	
+	//TODO
+	public void disconnect() {
+		()
+	}
 
 		
 }
