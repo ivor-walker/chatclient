@@ -14,21 +14,12 @@ public class ServerModel {
 	public boolean getActivity() {
 		return isActive;
 	}		
-	
-
-	public ServerModel(String host, int port, String nickname) {
-		this.host = host;
-		this.port = port;
-	
+		
+	private throughSocket(Consumer<T> action) {
 		try {
-			connection = new Socket(host, port);
-			reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-			writer = new PrintWriter(connection.getOutputStream(), true);
-
-			setNickname(nickname);
-		} 
-
-	       //Client input errors 
+			action
+		}
+		//Client input errors 
 		catch (IllegalArgumentException e) {
 			throw new IllegalArgumentException("Invalid port number. Port must be between between 0 and 65535, inclusive.");
 		} catch (NullPointerException e) {
@@ -54,9 +45,80 @@ public class ServerModel {
 		} catch (e) {
 			throw new Exception("Unknown exception. " + e.getMessage());
 		}
+	}
 
+	public ServerModel(String host, int port, String nickname) {
+		throughSocket(e -> {
+			connection = new Socket(host, port);
+			reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+			writer = new PrintWriter(connection.getOutputStream(), true);
+			setNickname(nickname);
+		});
+	}
+
+	//Public methods representing server commands	
+	public void setNickname(String nickname) {
+		throughSocket(e -> {
+			writer.println("NICK "+nickname);
+		});
+		this.nickname = nickname;
 	}
 	
+	public void disconnect() {
+		throughSocket(e -> {
+			writer.println("QUIT");	
+		});
+	}
+	
+	public void joinChannel(String channel) {
+		throughSocket(e -> {
+			writer.println("JOIN "+channel);	
+		});
+	}
+
+	public void leaveChannel(String channel) {
+		throughSocket(e -> {
+			writer.println("PART "+channel);
+		});
+	}
+
+	public void getNamesInChannel(String channel) {
+		throughSocket(e -> {
+			writer.println("NAMES "+channel);
+		});
+	}
+
+	public void getChannels() {
+		throughSocket(e -> {
+			writer.println("LIST");
+		});
+	}
+
+	public void privateMessage(String target, String message) {
+		throughSocket(e -> {
+			writer.println("PRIVMSG "+target+":"+message);
+		});
+	}
+
+	public void getTime() {
+		throughSocket(e -> {
+			writer.println("TIME");
+		});
+	}
+
+	public void getInfo() {
+		throughSocket(e -> {
+			writer.println("INFO");
+		});
+	}
+
+	public void ping(String message) {
+		throughSocket(e -> {
+			writer.println("PING");
+		});
+	}
+
+	//Getters of connection info
 	public String getHost() {
 		return this.host;
 	}
@@ -68,27 +130,7 @@ public class ServerModel {
 	public String getNickname() {
 		return this.nickname;
 	}
-
-	public void setNickname(String nickname) {
-		//TODO nickname setting protocol
-		//
-		this.nickname = nickname;
-	}
-	
-	//TODO
-	public void disconnect() {
-		()
-	}
-
 	private String toString() {
 		return host + ":" + toString(port); 
-	}
-
-	private boolean equals(String host, int port) {
-		return this.host.equals(host) && this.port.equals(port);
-	}		
-	
-	private boolean equals(String host, int port, String nickname) {
-		return this.host.equals(host) && this.port.equals(port) && this.nickname.equals(nickname);
 	}
 }

@@ -1,3 +1,5 @@
+import java.util.HashMap;
+
 public class ServerController {
 	private ServerView view;
 	
@@ -77,9 +79,9 @@ public class ServerController {
 	}
 	
 	private boolean connect() {
-		String host = view.getHostField();
-		int port = Integer.parseInt(view.getPortField());
-		String nickname = view.getNicknameField();
+		String host = view.getHost();
+		int port = Integer.parseInt(view.getPort());
+		String nickname = view.getNickname();
 
 		return connect(host, port, nickname);
 	}

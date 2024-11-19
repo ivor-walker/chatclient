@@ -1,9 +1,17 @@
+import javax.swing.*;
+import java.awt.*;
+import java.util.HashMap;
+
 public class ServerView extends JFrame {
+	private int width;
+	private int height;
+
+	private JPanel optionsPanel;	
 	private JButton addServerButton;
 	private JButton editConnectionButton;
 
-	private HashMap<String, JButton> serverButtons = new HashMap<String, JButton>(); 
 	private JPanel serverListPanel;
+	private HashMap<String, JButton> serverButtons = new HashMap<String, JButton>(); 
 
 	private JPanel formPanel;
 	private JTextField hostField;
@@ -11,11 +19,7 @@ public class ServerView extends JFrame {
 	private JTextField nicknameField;
 	private JButton commitButton;
 	private JButton removeButton;
-	
 	private JLabel connectionResultLabel;
-
-	private int width;
-	private int height;
 
 	//Initialisations
 	public ServerView(int width, int height) {
@@ -27,6 +31,7 @@ public class ServerView extends JFrame {
 
 	private void initialiseUI() {
 		initialiseMainFrame();
+		initialiseOptions();
 		initialiseServerList();
 		initialiseForm();
 		
@@ -34,15 +39,24 @@ public class ServerView extends JFrame {
 	}
 
 	private void toggleMainFrameVisibility(boolean mainFrameVisibility) {
-		setVisibility(mainFrameVisibility);
+		setvisible(mainFrameVisibility);
 		setFormVisibility(false);	
 	}	
 
 	private void initialiseMainFrame() {
-		setTitle("Add/edit connections");
+		setTitle("Manage connections");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setSize(width, height);
 		setLayout(new BorderLayout());
+	}
+
+	private void initialiseOptions() {
+		optionsPanel = new JPanel();
+		
+		addServerButton = addButton("Add new server", optionsPanel);
+		editConnectionButton = addButton("Edit connection", optionsPanel);
+		
+		add(optionsPanel, BorderLayout.NORTH);
 	}
 
 	private static final double WIDTH_PROPORTION_SERVER_LIST = 0.2;	
@@ -59,33 +73,35 @@ public class ServerView extends JFrame {
 
 	private void initialiseForm() {
 		formPanel = new JPanel();
-		formPanel.setLayout(new GridLayout(5, 2, 10, 10));
+		formPanel.setLayout(new GridLayout(0, 1, 10, 10));
 		
-		hostField = addNewField("Host");	
-		portField = addNewField("Port");
-		nicknameField = addNewField("Nickname");
+		hostField = addField("Host", formPanel);	
+		portField = addField("Port", formPanel);
+		nicknameField = addField("Nickname", formPanel);
 
-		commitButton = addNewButton("[Add|Update]");
-		removeButton = addNewButton("Delete server");
- 
-		connectionResultLabel = new JLabel("[connectionResult]");
+		commitButton = addButton("[Add|Update]", formPanel);
+		removeButton = addButton("Delete server", formPanel);
+
+		formPanel.add(new JLabel("Status: ")); 
+		connectionResultLabel = new JLabel("[connectionResult]", formPanel);
 		formPanel.add(connectionResultLabel);
 
 		add(formPanel, BorderLayout.CENTER);		
 	}
 
-	private JTextField addNewField(String label) {
-		formPanel.add(new JLabel(label));
+	private JTextField addField(String label, JPanel panel) {
+		panel.add(new JLabel(label));
 		JTextField newField = new JTextField();
-		formPanel.add(newField);
+		panel.add(newField);
 		return newField;
 	}
 
-	private JTextField addNewButton(String label) {
+	private JButton addButton(String label, JPanel panel) {
 		JButton newButton = new JButton(label);
-		formPanel.add(newField);
+		panel.add(newButton);
 		return newButton;
 	}
+
 	private void toggleFormVisibility(boolean isVisible) {
 		formPanel.setVisible(isVisible);
 		revalidate();
@@ -99,7 +115,6 @@ public class ServerView extends JFrame {
 		toggleFormVisibility(true);	
 	}
 		
-	private string updateTarget;
 	public void setupServerForm(String host, String port, String nickname) {
 		commitButton.setText("Update server");
 		hostField.setText(host);
@@ -174,7 +189,19 @@ public class ServerView extends JFrame {
 		}
 	}
 
-	
+	//Getters
+	public void getHost() {
+		return hostField.getText(); 
+	}
+
+	public void getPort() {
+		return portField.getText(); 
+	}
+
+	public void getNickname() {
+		return nickname.getText(); 
+	}
+
 	//Listeners
 	public void viewNewServerListener(ActionListener listener) {
 		addServerButton.addActionListener(listener);
