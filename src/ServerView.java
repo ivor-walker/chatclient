@@ -100,7 +100,7 @@ public class ServerView extends JFrame {
 	}
 		
 
-	public void setupServerForm(String host, int port, String nickname) {
+	public void setupServerForm(String host, String port, String nickname) {
 		commitButton.setText("Update server");
 		hostField.setText(host);
 		portField.setText(port);
@@ -114,13 +114,11 @@ public class ServerView extends JFrame {
 	}
 
 	//Adding, removing and updating the server list
-	public void addServer(String host, int port) {
-		addServer(host, port, true);
+	public void addServer(String serverString) {
+		addServer(serverString, true);
 	}	
 
-	public void addServer(String host, int port, boolean refresh) {
-		String serverKey = formatServerString(host, port);
-		
+	public void addServer(String serverKey, boolean refresh) {
 		if(serverButtons.contains(serverKey)) {
 			return;
 		}
@@ -134,12 +132,11 @@ public class ServerView extends JFrame {
 		}
 	}
 	
-	public void removeServer(String host, int port) {
-		removeServer(host, port, true);
+	public void removeServer(String serverKey) {
+		removeServer(serverKey, true);
 	}
 
-	public void removeServer(String host, int port, boolean refresh) {
-		String serverKey = formatServerString(host, port);
+	public void removeServer(String serverKey, boolean refresh) {
 		JButton buttonToRemove = serverButtons.get(serverKey);
 		
 		serverListPanel.remove(buttonToRemove);
@@ -150,25 +147,17 @@ public class ServerView extends JFrame {
 		}
 	}
 	
-	public void updateServer(String oldHost, int oldPort, String newHost, int newPort) {
-		removeServer(oldHost, oldPort, false);
-		addServer(newHost, newPort);
+	public void updateServer(String oldServerString, String newServerString) {
+		removeServer(oldServerString, false);
+		addServer(newServerString);
 	}
 	
-	
-	public void setActive(String host, int port) {
-		String activeServerKey = formatServerString(host, port);	
+	public void changeActive(String oldActiveServerKey, String activeServerKey) {
+		JButton oldActiveButton = serverButtons.get(oldActiveButton);
+                oldActiveButton.setBorder(BorderFactory.createEmptyBorder());
+		
 		JButton activeButton = serverButtons.get(activeServerKey);
-
-		for (String serverKey : serverButtons.keySet()) {
-			JButton buttonToToggle = serverButtons.get(serverKey);
-
-			if(serverKey.equals(activeServerKey)) {
-				buttonToToggle.setBorder(BorderFactory.createLineBorder(Color.RED, 3));
-                	} else {
-                        	buttonToToggle.setBorder(BorderFactory.createEmptyBorder());
-                	}
-		}
+		activeButton.setBorder(BorderFactory.createLineBorder(Color.RED, 3));
 	}
 
 	private void redrawServerList() {
@@ -177,23 +166,24 @@ public class ServerView extends JFrame {
 	}
 
 	//Listeners
-	public void updateNewServerListener(ActionListener listener) {
-
+	public void viewNewServerListener(ActionListener listener) {
+		addServerButton.addListener(listener());	
 	}
-
-	public void updateExistingServerListener(String host, int port, ActionListener listener) {
-		//TODO update specified button
-	}
-
+	
 	public void commitNewServerListener(ActionListener listener) {
-
+		commitButton.addListener(
+			listener(hostField.getText(), portField.getText(), nicknameField.getText())
+		);
+	}
+	
+	public void viewExistingServerListener(String serverString, ActionListener listener) {
+		JButton selectedButton = serverButtons.get(serverString);
+		selectedButton.addListener(listener(serverString));	
 	}
 
-	public void commitExistingServerListener(ActionListener listener) {
-
-	}
-
-	public String formatServerString(String host, int port) {
-		return host + ":" + port;
+	public void commitExistingServerListener(String oldHost, int oldPort, ActionListener listener) {
+		commitButton.addListener(
+			listener(oldHost, oldPost, hostField.getText(), portField.getText(), nicknameField.getText())
+		)	
 	}
 }

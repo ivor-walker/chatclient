@@ -2,19 +2,19 @@ public class ServerModel {
 	private Socket connection;
 	private BufferedReader reader;
 	private PrintWriter writer;
-	private String nickname;
-
-	public String getHost() {
-		return this.host;
-	}
-
-	public int getPort() {
-		return this.port;	
-	}
 	
-	public String getNickname() {
-		return this.nickname;
+	private String nickname;
+	
+	private boolean isActive
+
+	public void setActivity(boolean activityState) {
+		this.isActive = activityState;	
 	}
+
+	public boolean getActivity() {
+		return isActive;
+	}		
+	
 
 	public ServerModel(String host, int port, String nickname) {
 		this.host = host;
@@ -56,6 +56,18 @@ public class ServerModel {
 		}
 
 	}
+	
+	public String getHost() {
+		return this.host;
+	}
+
+	public int getPort() {
+		return this.port;	
+	}
+	
+	public String getNickname() {
+		return this.nickname;
+	}
 
 	public void setNickname(String nickname) {
 		//TODO nickname setting protocol
@@ -68,5 +80,15 @@ public class ServerModel {
 		()
 	}
 
-		
+	private String toString() {
+		return host + ":" + toString(port); 
+	}
+
+	private boolean equals(String host, int port) {
+		return this.host.equals(host) && this.port.equals(port);
+	}		
+	
+	private boolean equals(String host, int port, String nickname) {
+		return this.host.equals(host) && this.port.equals(port) && this.nickname.equals(nickname);
+	}
 }
