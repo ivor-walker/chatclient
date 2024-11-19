@@ -99,7 +99,7 @@ public class ServerView extends JFrame {
 		toggleFormVisibility(true);	
 	}
 		
-
+	private string updateTarget;
 	public void setupServerForm(String host, String port, String nickname) {
 		commitButton.setText("Update server");
 		hostField.setText(host);
@@ -158,32 +158,42 @@ public class ServerView extends JFrame {
 		
 		JButton activeButton = serverButtons.get(activeServerKey);
 		activeButton.setBorder(BorderFactory.createLineBorder(Color.RED, 3));
+		redrawServerList();
 	}
-
+	
 	private void redrawServerList() {
 		serverListPanel.revalidate();
 		serverListPanel.repaint();
 	}
 
+	public void setEditingEnabled(boolean editingEnabled) {
+		if(editingEnabled) {
+			editConnectionButton.setForeground(Color.BLACK);	
+		} else {
+			editConnectionButton.setForeground(Color.GREY);	
+		}
+	}
+
+	
 	//Listeners
 	public void viewNewServerListener(ActionListener listener) {
-		addServerButton.addListener(listener());	
+		addServerButton.addActionListener(listener);
 	}
 	
 	public void commitNewServerListener(ActionListener listener) {
-		commitButton.addListener(
-			listener(hostField.getText(), portField.getText(), nicknameField.getText())
-		);
+		commitButton.addActionListener(listener);
 	}
 	
 	public void viewExistingServerListener(String serverString, ActionListener listener) {
 		JButton selectedButton = serverButtons.get(serverString);
-		selectedButton.addListener(listener(serverString));	
+		selectedButton.addActionListener(listener);	
 	}
 
-	public void commitExistingServerListener(String oldHost, int oldPort, ActionListener listener) {
-		commitButton.addListener(
-			listener(oldHost, oldPost, hostField.getText(), portField.getText(), nicknameField.getText())
-		)	
+	public void commitExistingServerListener(ActionListener listener) {
+		commitButton.addActionListener(listener)	
+	}
+
+	public void toggleEditingListener(ActionListener listener) {
+		editConnectionButton.addActionListener(listener);	
 	}
 }
