@@ -33,16 +33,16 @@ public class UserManager {
       }
    }
 
-   public void leaveChannel(String username, String channelKey) {
-      if (!this.channels.containsKey(channel)) {
+   public void leaveChannel(String var1, String var2) {
+      if (!this.channels.containsKey(var2)) {
          throw new IllegalArgumentException("No channel exists with that name");
       } else {
-         Channel channel = (Channel)this.channels.get(channelKey);
-         if (!this.users.containsKey(username)) {
+         Channel var3 = (Channel)this.channels.get(var2);
+         if (!this.users.containsKey(var1)) {
             throw new IllegalArgumentException("You need to register first");
          } else {
-            User user = (User)this.users.get(user);
-            channel.removeUser(user);
+            User var4 = (User)this.users.get(var1);
+            var3.removeUser(var4);
          }
       }
    }

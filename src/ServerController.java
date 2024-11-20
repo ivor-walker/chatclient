@@ -12,6 +12,7 @@ public class ServerController {
 		view = new ServerView(width, height);
 		setupListeners();
 	}
+
 	
 	private void setupListeners() {
 		view.viewNewServerListener(e -> viewNewServer());
@@ -77,13 +78,13 @@ public class ServerController {
 		view.removeServer(editingServerString);
 		editingServerModel.disconnect();	
 	}
-	
-	private boolean connect() {
+
+	private ServerModel connect() {
 		String host = view.getHost();
 		int port = Integer.parseInt(view.getPort());
 		String nickname = view.getNickname();
 
-		return connect(host, port, nickname);
+		return connect(host, port, nickname, false);
 	}
 
 	private ServerModel connect(String host, int port, String nickname) {
