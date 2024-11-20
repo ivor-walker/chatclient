@@ -89,20 +89,58 @@ public class ServerModel {
 	}
 	
 	private void handleServerMessage(message) { 
-		//Only noticeable pattern is that the message code has capital letters in it 
-		String regex = "[A-Z_]+"
-		Matcher matcher = Pattern.compile(regex).matcher(message);
-		String messageCode = matcher.group();
-		String messageContent = message.replaceFirst(messageCode, "");
-		messageContent = messageContent.replaceFirst(":", "");
+		//Special cases
+		if(message.startsWith(":")) {	
+			//TODO extract messagecode from special instances
+			String[] splitMessage = String.split(message, " ");
+			String nickname = splitMessage[0];
+			String messageCode = splitMessage[1];
+			String messageContent = message.replaceFirst(messageCode, "");
+			messageContent = messageContent.replaceFirst(":", "");
+
+			switch(messageCode) {
+				case "QUIT":
+					recieveQuit();
+					return;
+				case "JOIN":
+					recieveJoin(splitMessage[0], splitMessage[2]);
+					return;
+				case "PART":
+					recievePart(splitMessage[0], splitMessage[2]);
+					return;
+				case "PRIVMSG":
+					recieveMessage(splitMessage[0], splitMessage[2]);
+					return;
+			}
+		}
 	
-		switch (messageCode) {
-			case "REPLY_NICK":
-				recieveNickname(messageContent);
-			case "REPLY_TIME":
-				recieveTime(messageContent);
-			case "JOIN":
-				recieveJoin(messageContent);		
+		//Only noticeable pattern is that the message code has capital letters in it 
+		String regex = "[A-Z_]+";
+		Matcher matcher = Pattern.compile(regex).matcher(message);
+		
+		List<String> messageCodes = new ArrayList<>();
+		while (matcher.find()) {
+			messageCodes.add(matcher.group());
+		}
+
+		for (String messageCode : messageCodes) {
+			String messageContent = message.replaceFirst(messageCode, "");
+			messageContent = messageContent.replaceFirst(":", "");
+			
+			switch (messageCode) {
+				case "REPLY_NAMES":
+					recieveUsersInChannel(messageContent);
+				case "REPLY_LIST":
+					recieveOfferedChannels(messageContent);
+				case "REPLY_TIME":
+					recieveTime(messageContent);
+				case "REPLY_INFO":
+					recieveInfo(messageContent);
+				case "PONG":
+					recievePong(messageContent);
+				case "ERROR":
+					recieveError(messageContent);
+			}
 		}
 	}
 
@@ -117,6 +155,7 @@ public class ServerModel {
 	
 	private void recieveNickname(String messageContent) {
 		String nickname = messageContent.split(", ")[1];
+
 		this.nickname = nickname;
 
 		if(nicknameFuture != null && !nicknameFuture.isDone()) {
@@ -132,12 +171,18 @@ public class ServerModel {
 	public void disconnect() {
 		throughSocket(e -> {
 			writer.println("QUIT");
+			
+		});
+	}
+
+	private void recieveQuit() {
+		throughSocket(e -> {
 			writer.close();
 			reader.close();
 			socket.close();
 		});
 	}
-	
+
 	//Getting current server time	
 	private CompletableFuture<String> timeFuture = new CompletableFuture<>();
 
@@ -155,19 +200,23 @@ public class ServerModel {
 	}
 
 	//Channels
-	private HashMap<String, String[]> participatedChannels = new HashMap<>();
+	private HashMap<String, ?> targets = new HashMap<>();
 	//private HashMap<String, String[]> offeredChannels = new HashMap<>();
-
 
 	//Join channel
 	public void joinChannel(String channel) {
 		throughSocket(e -> {
 			writer.println("JOIN " + channel);	
 		});
+	}
 
-		getNamesInChannel(channel).thenAccept(users -> {
-			participatedChannels.put(channel, users);
-		)}
+	private void recieveJoinChannel(String messageContent) {
+		String channelName = //TODO
+
+		getNamesInChannel(channelName).thenAccept(users -> {
+			Channel channel = new Channel(channelName, users);
+			targets.add(channel.getName(), channel);	
+		});
 	}
 	
 	//Get names from channel	
@@ -177,9 +226,9 @@ public class ServerModel {
 		throughSocket(e -> {
 			writer.println("NAMES " + channel);
 		});
+
 		return namesFuture;
 	}
-
 	
 	private void recieveNamesInChannel(String messageContent) {
 		String[] users = String.split(messageContent, " ");
@@ -193,8 +242,17 @@ public class ServerModel {
 		throughSocket(e -> {
 			writer.println("PART " + channel);
 		});
-		
-		participatedChannels.remove(channel);
+	}
+	
+	private void recieveLeaveChannel(String messageContent) {
+		String channel = processLeaveChannel(messageContent);	
+		targets.remove(channel);
+	}
+	
+	private String processLeaveChannel(String messageContent) {
+		//TODO		
+		String channel;	
+		return channel;
 	}
 
 	//Get all channels	
@@ -215,12 +273,25 @@ public class ServerModel {
 	}
 	
 	//Messages
-	public void privateMessage(String target, String message) {
+	public void sendMessage(String target, String message) {
 		throughSocket(e -> {
 			writer.println("PRIVMSG " + target + ":" + message);
 		});
 	}
 
+	private void recieveMessage(String messageContent) {
+		getServerTime().thenAccept(serverTime -> {
+			Message message = new Message(messageContent, serverTime);
+			Target target = targets.get(message.target); 
+
+			if(target == null) {
+				target = new Target(message.target);
+				targets.add(target);
+			}
+
+			target.addMessage(message);
+		});
+	}
 	
 	//Miscellaneous
 	public void getInfo() {
@@ -251,5 +322,96 @@ public class ServerModel {
 	
 	private String toString() {
 		return host + ":" + toString(port); 
+	}
+}
+
+private class Message {
+	private String sender;
+	private String target;
+	private String message;
+	private LocalDateTime serverTime;
+	private LocalDateTime clientTime;
+
+	private Message(String messageContent, String serverTime) {
+		//TODO
+		
+		this.sender = sender;
+		this.target = target;
+		this.message = message;
+
+		this.serverTime = LocalDateTime.parse(serverTime);
+		this.clientTime = LocalDateTime.now();
+	}
+
+	DateTimeFormatter userFriendlyFormat = DateTimeFormatter.ofPattern("E dd-MM-yyyy HH:mm:ss");
+	public toString() {
+		String userFriendlyClientTime = clientTime.format(userFriendlyFormat);
+		return "[" + userFriendlyClientTime + "] " + sender + ": " + message;
+	}
+
+	public LocalDateTime getServerTime() {
+		return this.serverTime;
+	}
+}
+
+private class Target {
+	private String name;
+	private List<Message> messages = new ArrayList<>();
+
+	public Target(String name) {
+		this.name = name;
+	}	
+
+	public Target(String name, List<String> users) {
+		this = new Channel(name, users);	
+	}
+
+	public List<Message> getMessages() {
+		sortMessages();			
+		return messages;
+	}
+
+	public LocalDateTime getServerTimeOfLastMessage() {
+		sortMessages();
+		return messages[messages.length].getServerTime();
+	}
+
+	public void sortMessages() {
+		messages.sort(
+			Comparator.comparing(Message::getServerTime)
+		);
+	}
+
+	public void addMessage(Message message) {
+		messages.add(message);
+	}
+	
+	public String getName() {
+		return name;
+	}
+}
+
+private class Channel extends Target {
+	private List<String> users = new ArrayList<>();
+
+	public Channel(String name, List<String> users) {
+		super(name);
+		overwriteUsers(users);	
+	}
+	
+	public List<String> getUsers() {
+		return users;
+	}
+
+	public void addUser(String username) {
+		users.add(username);
+	}
+	
+	public void removeUser(String username) {
+		users.remove(username);
+	}
+
+	public void overwriteUsers(List<String> users) {
+		this.users = users;	
 	}
 }

@@ -182,9 +182,9 @@ public class ClientConnection extends Thread {
       this.userManager.sendMessage(var1, var2);
    }
 
-   private void partCommand(String var1) throws ClientConnection.NotRegisteredException {
+   private void partCommand(String channel) throws ClientConnection.NotRegisteredException {
       this.checkUserIsRegistered();
-      String var2 = String.format(":%s PART %s", this.nick, var1);
+      String var2 = String.format(":%s PART %s", this.nick, channel);
       this.userManager.sendMessage(var1, var2);
       this.userManager.leaveChannel(this.nick, var1);
    }
@@ -205,19 +205,19 @@ public class ClientConnection extends Thread {
       this.sendReply("REPLY_LIST", var2);
    }
 
-   private void privMsgCommand(String var1) throws ClientConnection.NotRegisteredException {
+   private void privMsgCommand(String messageContent) throws ClientConnection.NotRegisteredException {
       this.checkUserIsRegistered();
-      String[] var2 = var1.split("\\s+", 2);
-      if (var2.length < 2) {
+      String[] messageContentSplit = messageContent.split("\\s+", 2);
+      if (messageContentSplit.length < 2) {
          throw new IllegalArgumentException("Invalid arguments to PRIVMSG command");
       } else {
-         String var3 = var2[0];
-         String var4 = var2[1];
+         String target = messageContentSplit[0];
+         String var4 = messageContentSplit[1];
          if (!var4.startsWith(":")) {
             throw new IllegalArgumentException("Invalid arguments to PRIVMSG command");
          } else {
-            String var5 = String.format(":%s PRIVMSG %s %s", this.nick, var3, var4);
-            this.userManager.sendMessage(var3, var5);
+            String message = String.format(":%s PRIVMSG %s %s", this.nick, target, var4);
+            this.userManager.sendMessage(target, message);
          }
       }
    }

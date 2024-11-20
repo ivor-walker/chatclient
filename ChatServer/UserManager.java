@@ -111,11 +111,11 @@ public class UserManager {
       return var0 != null && var0.matches("[a-zA-Z_]\\w{0,8}");
    }
 
-   public void sendMessage(String var1, String var2) {
-      if (isValidChannelName(var1)) {
-         this.sendMessageToChannel(var1, var2);
+   public void sendMessage(String target, String messageContent) {
+      if (isValidChannelName(target)) {
+         this.sendMessageToChannel(target, messageContent);
       } else {
-         this.sendMessageToUser(var1, var2);
+         this.sendMessageToUser(target, messageContent);
       }
 
    }
