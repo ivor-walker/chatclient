@@ -205,18 +205,18 @@ public class ClientConnection extends Thread {
       this.sendReply("REPLY_LIST", var2);
    }
 
-   private void privMsgCommand(String messageContent) throws ClientConnection.NotRegisteredException {
+   private void privMsgCommand(String clientMessage) throws ClientConnection.NotRegisteredException {
       this.checkUserIsRegistered();
-      String[] messageContentSplit = messageContent.split("\\s+", 2);
+      String[] messageContentSplit = clientMessage.split("\\s+", 2);
       if (messageContentSplit.length < 2) {
          throw new IllegalArgumentException("Invalid arguments to PRIVMSG command");
       } else {
          String target = messageContentSplit[0];
-         String var4 = messageContentSplit[1];
-         if (!var4.startsWith(":")) {
+         String message = messageContentSplit[1];
+         if (!message.startsWith(":")) {
             throw new IllegalArgumentException("Invalid arguments to PRIVMSG command");
          } else {
-            String message = String.format(":%s PRIVMSG %s %s", this.nick, target, var4);
+            String message = String.format(":%s PRIVMSG %s %s", this.nick, target, message);
             this.userManager.sendMessage(target, message);
          }
       }

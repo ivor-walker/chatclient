@@ -88,35 +88,52 @@ public class ServerModel {
 		});
 	}
 	
-	private void handleServerMessage(message) { 
+	private int TARGET_POSITION = 2;
+	private int MESSAGE_POSITION = 3;
+
+	private void handleServerMessage(serverMessage) { 
 		//Special cases
 		if(message.startsWith(":")) {	
-			//TODO extract messagecode from special instances
-			String[] splitMessage = String.split(message, " ");
+			String filteredMessage = message.replaceFirst(":", "");
+			String[] splitMessage = String.split(filteredMessage, " ");
+
 			String nickname = splitMessage[0];
 			String messageCode = splitMessage[1];
-			String messageContent = message.replaceFirst(messageCode, "");
-			messageContent = messageContent.replaceFirst(":", "");
+			
+			String target;
+			if(splitMessage.length > TARGET_POSITION) {
+				target = splitMessage[TARGET_POSITION];
+			}
+
+			String message;
+			if(splitMessage.length > MESSAGE_POSITION) {
+				String[] splitMessageContent = Arrays.copyOfRange(splitMessage, MESSAGE_POSITION, splitMessage.length);
+				message = String.join(splitMessageContent, " "); 
+				
+			}
+
+			String message = message.replaceFirst(messageCode, "");
+			message = message.replaceFirst(":", "");
 
 			switch(messageCode) {
 				case "QUIT":
-					recieveQuit();
+					recieveQuit(nickname);
 					return;
 				case "JOIN":
-					recieveJoin(splitMessage[0], splitMessage[2]);
+					recieveJoinChannel(nickname, target);
 					return;
 				case "PART":
-					recievePart(splitMessage[0], splitMessage[2]);
+					recievePartChannel(nickname, target);
 					return;
 				case "PRIVMSG":
-					recieveMessage(splitMessage[0], splitMessage[2]);
+					recieveMessage(nickname, target, message);
 					return;
 			}
 		}
 	
 		//Only noticeable pattern is that the message code has capital letters in it 
 		String regex = "[A-Z_]+";
-		Matcher matcher = Pattern.compile(regex).matcher(message);
+		Matcher matcher = Pattern.compile(regex).matcher(serverMessage);
 		
 		List<String> messageCodes = new ArrayList<>();
 		while (matcher.find()) {
@@ -124,8 +141,8 @@ public class ServerModel {
 		}
 
 		for (String messageCode : messageCodes) {
-			String messageContent = message.replaceFirst(messageCode, "");
-			messageContent = messageContent.replaceFirst(":", "");
+			String messageContent = serverMessage.replaceFirst(messageCode, "");
+			messageContent = serverMessage.replaceFirst(":", "");
 			
 			switch (messageCode) {
 				case "REPLY_NAMES":
@@ -175,12 +192,15 @@ public class ServerModel {
 		});
 	}
 
-	private void recieveQuit() {
-		throughSocket(e -> {
-			writer.close();
-			reader.close();
-			socket.close();
-		});
+	private void recieveQuit(nickname) {
+		targets.remove(nickname);
+		if(nickname == this.nickname) {
+			throughSocket(e -> {
+				writer.close();
+				reader.close();
+				socket.close();
+			});
+		}
 	}
 
 	//Getting current server time	
@@ -210,8 +230,10 @@ public class ServerModel {
 		});
 	}
 
-	private void recieveJoinChannel(String messageContent) {
-		String channelName = //TODO
+	private void /ecieveJoinChannel(String nickname, String channelName) {
+		if(this.nickname!=nickname) {
+			return;
+		}
 
 		getNamesInChannel(channelName).thenAccept(users -> {
 			Channel channel = new Channel(channelName, users);
@@ -230,8 +252,8 @@ public class ServerModel {
 		return namesFuture;
 	}
 	
-	private void recieveNamesInChannel(String messageContent) {
-		String[] users = String.split(messageContent, " ");
+	private void recieveNamesInChannel(String usersString) {
+		String[] users = String.split(usersString, " ");
 		if(namesFuture != null && !namesFuture.isDone()) {
 			namesFuture.complete(users);
 		}	
@@ -332,9 +354,7 @@ private class Message {
 	private LocalDateTime serverTime;
 	private LocalDateTime clientTime;
 
-	private Message(String messageContent, String serverTime) {
-		//TODO
-		
+	private Message(String sender, String target, String message, String serverTime) {
 		this.sender = sender;
 		this.target = target;
 		this.message = message;
