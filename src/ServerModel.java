@@ -13,8 +13,23 @@ public class ServerModel {
 
 	public boolean getActivity() {
 		return isActive;
-	}		
-		
+	}	
+
+	private List<MessageListener> listeners = new ArrayList<>();
+	
+	public interface Listener {
+		void onMessageRecieved(Message message);
+		//TODO
+	}
+
+	public void addListener(Listener listener) {
+		listeners.add(listener);
+	}	
+	
+	public void addListener(Listener listener) {
+		listeners.remove(listener);
+	}
+
 	private throughSocket(Consumer<T> action) {
 		try {
 			action
@@ -52,6 +67,7 @@ public class ServerModel {
 		}
 	}
 
+	//Initialise and connect to a new server
 	public ServerModel(String host, int port, String nickname) {
 		this(host, port, nickname, true);	
 	}
@@ -69,9 +85,9 @@ public class ServerModel {
 			this.port = port;
 			
 			reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-			listenForMessages();
-
 			writer = new PrintWriter(connection.getOutputStream(), true);
+			
+			listenForMessages();
 			sendNickname(nickname);
 		});
 	}
@@ -146,17 +162,23 @@ public class ServerModel {
 			
 			switch (messageCode) {
 				case "REPLY_NAMES":
-					recieveUsersInChannel(messageContent);
+					recieveNamesInChannel(messageContent);
+					return;
 				case "REPLY_LIST":
 					recieveOfferedChannels(messageContent);
+					return;
 				case "REPLY_TIME":
 					recieveTime(messageContent);
+					return;
 				case "REPLY_INFO":
 					recieveInfo(messageContent);
+					return;
 				case "PONG":
 					recievePong(messageContent);
+					return;
 				case "ERROR":
 					recieveError(messageContent);
+					return;
 			}
 		}
 	}
@@ -230,8 +252,8 @@ public class ServerModel {
 		});
 	}
 
-	private void /ecieveJoinChannel(String nickname, String channelName) {
-		if(this.nickname!=nickname) {
+	private void recieveJoinChannel(String nickname, String channelName) {
+		if(this.nickname != nickname) {
 			return;
 		}
 
@@ -266,17 +288,16 @@ public class ServerModel {
 		});
 	}
 	
-	private void recieveLeaveChannel(String messageContent) {
-		String channel = processLeaveChannel(messageContent);	
-		targets.remove(channel);
+	private void recievePartChannel(String nickname, String target) {
+		Target channel = targets.get(target);
+		channel.removeUser(target);
+
+		if(this.nickname == nickname) {
+			targets.remove(target);
+		}
+		
 	}
 	
-	private String processLeaveChannel(String messageContent) {
-		//TODO		
-		String channel;	
-		return channel;
-	}
-
 	//Get all channels	
 	private CompletableFuture<String> channelsFuture = new CompletableFuture<>();
 
@@ -295,15 +316,15 @@ public class ServerModel {
 	}
 	
 	//Messages
-	public void sendMessage(String target, String message) {
+	public void sendMessage(String target, String messageContent) {
 		throughSocket(e -> {
-			writer.println("PRIVMSG " + target + ":" + message);
+			writer.println("PRIVMSG " + target + ":" + messageContent);
 		});
 	}
 
-	private void recieveMessage(String messageContent) {
+	private void recieveMessage(String sender, String target, String messageContent) {
 		getServerTime().thenAccept(serverTime -> {
-			Message message = new Message(messageContent, serverTime);
+			Message message = new Message(sender, target, messageContent, serverTime);
 			Target target = targets.get(message.target); 
 
 			if(target == null) {
@@ -312,9 +333,13 @@ public class ServerModel {
 			}
 
 			target.addMessage(message);
+
+			for(Listener listener : listeners) {
+				listener.onMessageRecieved(message);
+			}
 		});
 	}
-	
+
 	//Miscellaneous
 	public void getInfo() {
 		throughSocket(e -> {
@@ -322,15 +347,26 @@ public class ServerModel {
 		});
 	}
 
-	public void ping(String message) {
+	private void recieveInfo(String messageContent) {
+		//TODO
+	}
+
+	public void ping(String messageContent) {
 		throughSocket(e -> {
-			writer.println("PING " + message);
+			writer.println("PING " + messageContent);
 		});
 	}
 
 	
-
+	private void recievePong(String messageContent) {
+		//TODO			
+	}
 	
+	//Error listening
+	private void recieveError(String messageContent) {
+		//TODO
+	}
+
 
 	//Getters of connection info
 	public String getHost() {
@@ -345,93 +381,18 @@ public class ServerModel {
 	private String toString() {
 		return host + ":" + toString(port); 
 	}
-}
 
-private class Message {
-	private String sender;
-	private String target;
-	private String message;
-	private LocalDateTime serverTime;
-	private LocalDateTime clientTime;
-
-	private Message(String sender, String target, String message, String serverTime) {
-		this.sender = sender;
-		this.target = target;
-		this.message = message;
-
-		this.serverTime = LocalDateTime.parse(serverTime);
-		this.clientTime = LocalDateTime.now();
+	//Getters of targets
+	public Target[] getUsers() {
+		return targets.stream()
+			.filter(target -> !(target.isChannel()))
+			.toArray(Target[]::new);
 	}
 
-	DateTimeFormatter userFriendlyFormat = DateTimeFormatter.ofPattern("E dd-MM-yyyy HH:mm:ss");
-	public toString() {
-		String userFriendlyClientTime = clientTime.format(userFriendlyFormat);
-		return "[" + userFriendlyClientTime + "] " + sender + ": " + message;
-	}
-
-	public LocalDateTime getServerTime() {
-		return this.serverTime;
-	}
-}
-
-private class Target {
-	private String name;
-	private List<Message> messages = new ArrayList<>();
-
-	public Target(String name) {
-		this.name = name;
-	}	
-
-	public Target(String name, List<String> users) {
-		this = new Channel(name, users);	
-	}
-
-	public List<Message> getMessages() {
-		sortMessages();			
-		return messages;
-	}
-
-	public LocalDateTime getServerTimeOfLastMessage() {
-		sortMessages();
-		return messages[messages.length].getServerTime();
-	}
-
-	public void sortMessages() {
-		messages.sort(
-			Comparator.comparing(Message::getServerTime)
-		);
-	}
-
-	public void addMessage(Message message) {
-		messages.add(message);
+	public Channel[] getChannels() {
+		return targets.stream()
+			.filter(target -> target.isChannel())
+			.toArray(Channel[]::new);
 	}
 	
-	public String getName() {
-		return name;
-	}
-}
-
-private class Channel extends Target {
-	private List<String> users = new ArrayList<>();
-
-	public Channel(String name, List<String> users) {
-		super(name);
-		overwriteUsers(users);	
-	}
-	
-	public List<String> getUsers() {
-		return users;
-	}
-
-	public void addUser(String username) {
-		users.add(username);
-	}
-	
-	public void removeUser(String username) {
-		users.remove(username);
-	}
-
-	public void overwriteUsers(List<String> users) {
-		this.users = users;	
-	}
 }
