@@ -1,7 +1,28 @@
-private class Channel extends Target {
-        private List<String> users = new ArrayList<>();
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Arrays;
+import java.net.Socket;
+import java.net.UnknownHostException;
+import java.net.NoRouteToHostException;
+import java.net.ConnectException;
+import java.net.BindException;
+import java.net.SocketException;
+import java.io.EOFException;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
-        public Channel(String name, List<String> users) {
+public class Channel extends Target {
+        private List<String> users;
+
+        public Channel(String name, String[] users) {
                 super(name);
                 overwriteUsers(users);
         }
@@ -18,8 +39,8 @@ private class Channel extends Target {
                 users.remove(username);
         }
 
-        public void overwriteUsers(List<String> users) {
-                this.users = users;
+        public void overwriteUsers(String[] users) {
+                this.users = new ArrayList<>(Arrays.asList(users));
         }
 
 	public boolean isChannel() {

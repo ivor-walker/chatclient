@@ -110,16 +110,26 @@ public class ServerView extends JFrame {
 
 	//Public methods for connection managing
 	public void setupServerForm() {
-		commitButton.setText("Add server");
-
-		toggleFormVisibility(true);	
+		setupServerForm("", "", "", true);	
 	}
 		
 	public void setupServerForm(String host, String port, String nickname) {
-		commitButton.setText("Update server");
+		setupServerForm(host, port, nickname, false);	
+	}
+
+	public void setupServerForm(String host, String port, String nickname, boolean addingServer) {
 		hostField.setText(host);
 		portField.setText(port);
 		nicknameField.setText(nickname);
+		
+		setConnectionResult("");	
+		
+		if(addingServer) {	
+			commitButton.setText("Add server");
+		else {
+			commitButton.setText("Update server");
+		}
+
 		
 		toggleFormVisiblity(true);
 	}

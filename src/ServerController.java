@@ -8,7 +8,7 @@ public class ServerController {
 
 	private String serverString;
 
-	public ServerController(width, height) {
+	public ServerController(int width, int height) {
 		view = new ServerView(width, height);
 		setupListeners();
 	}
@@ -23,9 +23,9 @@ public class ServerController {
 		view.removeExistingServerListener(e -> removeExistingServer());
 	}
 	
-        private void viewNewServer() {
-                view.setupServerForm();
-        }
+	private void viewNewServer() {
+		view.setupServerForm();
+	}
 
 	private void commitNewServer() {
 		ServerModel newServerModel = connect();
@@ -63,9 +63,13 @@ public class ServerController {
 		ServerModel newServerModel = connect();
 
 		if(newServerModel) {
-			view.updateServer(oldServerString, newServerModel.toString());
-			oldServerModel.disconnect();	
-			view.setConnectionResult("Server updated successfully!");
+			oldServerModel.disconnect().thenRun(() -> {
+				//TODO execute the below code when onQuit	
+				view.updateServer(oldServerString, newServerModel.toString());
+				view.setConnectionResult("Server updated successfully!");
+			}).exceptionally(e -> {
+				view.setConnectionResult(e);	
+			});
 		}
 	}
 
@@ -75,8 +79,11 @@ public class ServerController {
 	}
 	
 	private void removeExistingServer() {
-		view.removeServer(editingServerString);
-		editingServerModel.disconnect();	
+		editingServerModel.disconnect().thenRun(() -> {
+			view.removeServer(editingServerString);
+		}).exceptionally(e -> {
+			view.setConnectionResult(e);
+		});
 	}
 
 	private ServerModel connect() {
@@ -84,21 +91,20 @@ public class ServerController {
 		int port = Integer.parseInt(view.getPort());
 		String nickname = view.getNickname();
 
-		return connect(host, port, nickname, false);
+		return connect(host, port, nickname);
 	}
 
 	private ServerModel connect(String host, int port, String nickname) {
 		try {
-               		model = new ServerModel(host, port, nickname;
-			serverModels.put(model.toString(), model);			
-			return model;
-		}
-
-                catch (Exception e) {
+			model = new ServerModel(host, port, nickname;
+		} catch (Exception e) {
 			view.setConnectionResult(e.getMessage());
 			return null;
 		}
-        }
+
+		serverModels.put(model.toString(), model);			
+		return model;
+	}
 
 	private void setActive(ServerModel serverModel) {
 		view.changeActive(activeServerModel.toString(), serverModel.toString());
@@ -108,4 +114,4 @@ public class ServerController {
 	public boolean getActive() {
 		return this.activeServerModel;
 	}
-}        
+}	 
