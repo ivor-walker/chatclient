@@ -15,11 +15,25 @@ public class ServerModel {
 		return isActive;
 	}	
 
+	//Listeners for server replies only
 	private List<MessageListener> listeners = new ArrayList<>();
-	
 	public interface Listener {
-		void onMessageRecieved(Message message);
-		//TODO
+		void onQuit();
+		void onQuit(String usernameWhoQuit);
+
+		void onJoinChannel(Channel channel);
+		void onJoinChannel(String usernameWhoQuit, Channel channel);
+
+		void onPartChannel(Channel channel);
+		void onPartChannel(String usernameWhoQuit, Channel channel);
+
+		void onMessage(String nickname, <T> target, Message message);
+
+		void onInfo();
+		
+		void onPong();
+		
+		void onError();
 	}
 
 	public void addListener(Listener listener) {
@@ -30,6 +44,7 @@ public class ServerModel {
 		listeners.remove(listener);
 	}
 
+	
 	private throughSocket(Consumer<T> action) {
 		try {
 			action
@@ -63,7 +78,7 @@ public class ServerModel {
 		} catch (IOException e) {
 			throw new IOException("Unkown IO exception. " + e.getMessage());
 		} catch (e) {
-			throw new Exception("Unknown exception. " + e.getMessage());
+			throw new Exception("Unknown connection exception. " + e.getMessage());
 		}
 	}
 
@@ -78,6 +93,8 @@ public class ServerModel {
 		}
 	}
 
+	private HashMap<String, ?> targets = new HashMap<>();
+
 	private void connect(String host, int port, String nickname) {
 		throughSocket(e -> {
 			connection = new Socket(host, port);
@@ -89,6 +106,7 @@ public class ServerModel {
 			
 			listenForMessages();
 			sendNickname(nickname);
+				
 		});
 	}
 	
@@ -107,8 +125,9 @@ public class ServerModel {
 	private int TARGET_POSITION = 2;
 	private int MESSAGE_POSITION = 3;
 
+	//TODO refactor
 	private void handleServerMessage(serverMessage) { 
-		//Special cases
+		//Server notifications	
 		if(message.startsWith(":")) {	
 			String filteredMessage = message.replaceFirst(":", "");
 			String[] splitMessage = String.split(filteredMessage, " ");
@@ -130,23 +149,42 @@ public class ServerModel {
 
 			String message = message.replaceFirst(messageCode, "");
 			message = message.replaceFirst(":", "");
+		
+			boolean refersSelf = this.nickname == nickname
+			if(refersSelf) {	
+				switch(messageCode) {
+					case "QUIT":
+						recieveQuit();
+						return;
+					case "JOIN":
+						recieveJoinChannel(target);
+						return;
+					case "PART":
+						recievePartChannel(target);
+						return;
+					case "PRIVMSG":
+						recieveMessage(target, message);
+						return;
+				}
+			} else {
+				switch(messageCode) {
+					case "QUIT":
+						recieveQuit(nickname);
+						return;
+					case "JOIN":
+						recieveJoinChannel(nickname, target);
+						return;
+					case "PART":
+						recievePartChannel(nickname, target);
+						return;
+					case "PRIVMSG":
+						recieveMessage(nickname, target, message);
+						return;
 
-			switch(messageCode) {
-				case "QUIT":
-					recieveQuit(nickname);
-					return;
-				case "JOIN":
-					recieveJoinChannel(nickname, target);
-					return;
-				case "PART":
-					recievePartChannel(nickname, target);
-					return;
-				case "PRIVMSG":
-					recieveMessage(nickname, target, message);
-					return;
 			}
 		}
-	
+
+		//Server replies	
 		//Only noticeable pattern is that the message code has capital letters in it 
 		String regex = "[A-Z_]+";
 		Matcher matcher = Pattern.compile(regex).matcher(serverMessage);
@@ -163,6 +201,9 @@ public class ServerModel {
 			switch (messageCode) {
 				case "REPLY_NAMES":
 					recieveNamesInChannel(messageContent);
+					return;
+				case "REPLY_NICK":
+					recieveNickname(messageContent);
 					return;
 				case "REPLY_LIST":
 					recieveOfferedChannels(messageContent);
@@ -183,29 +224,6 @@ public class ServerModel {
 		}
 	}
 
-	//Nicknames
-	private CompletableFuture<String> nicknameFuture = new CompletableFuture<>();
-
-	public void sendNickname(String nickname) {
-		throughSocket(e -> {
-			writer.println("NICK " + nickname);
-		});
-	}
-	
-	private void recieveNickname(String messageContent) {
-		String nickname = messageContent.split(", ")[1];
-
-		this.nickname = nickname;
-
-		if(nicknameFuture != null && !nicknameFuture.isDone()) {
-			nicknameFuture.complete(nickname);
-		}
-	}
-	
-	public CompletableFuture<String> getNickname() {
-		return nicknameFuture;
-	}
-
 	//Disconnect
 	public void disconnect() {
 		throughSocket(e -> {
@@ -214,37 +232,35 @@ public class ServerModel {
 		});
 	}
 
-	private void recieveQuit(nickname) {
-		targets.remove(nickname);
-		if(nickname == this.nickname) {
-			throughSocket(e -> {
-				writer.close();
-				reader.close();
-				socket.close();
-			});
-		}
-	}
-
-	//Getting current server time	
-	private CompletableFuture<String> timeFuture = new CompletableFuture<>();
-
-	public void getServerTime() {
+	private void recieveQuit() {
 		throughSocket(e -> {
-			writer.println("TIME");
+			writer.close();
+			reader.close();
+			socket.close();
 		});
-		return timeFuture; 
-	}
-
-	private void recieveTime(String messageContent) {
-		if(timeFuture != null && !timeFuture.isDone()) {
-			timeFuture.complete(messageContent);
+		
+		recieveQuit(this.nickname, false);
+		
+		for(Listener listener : listeners) {
+			listener.onQuit();
 		}	
 	}
 
-	//Channels
-	private HashMap<String, ?> targets = new HashMap<>();
-	//private HashMap<String, String[]> offeredChannels = new HashMap<>();
+	private void recieveQuit(String nickname) {
+		recieveQuit(nickname, true);	
+	}
 
+	private void recieveQuit(String nickname, boolean addListeners) {
+		targets.remove(nickname);
+		
+		if(addListeners) {
+			for(Listener listener : listeners) {
+				listener.onQuit(nickname);
+			}
+		}
+	}
+
+	
 	//Join channel
 	public void joinChannel(String channel) {
 		throughSocket(e -> {
@@ -252,35 +268,26 @@ public class ServerModel {
 		});
 	}
 
-	private void recieveJoinChannel(String nickname, String channelName) {
-		if(this.nickname != nickname) {
-			return;
-		}
-
+	private void recieveJoinChannel(String channelName) {
 		getNamesInChannel(channelName).thenAccept(users -> {
 			Channel channel = new Channel(channelName, users);
 			targets.add(channel.getName(), channel);	
+			
+			for(Listener listener : listeners) {
+				listener.onJoinChannel(channel);
+			}
 		});
 	}
-	
-	//Get names from channel	
-	private CompletableFuture<String> namesFuture = new CompletableFuture<>();
 
-	public String[] getNamesInChannel(String channel) {
-		throughSocket(e -> {
-			writer.println("NAMES " + channel);
-		});
+	private void recieveJoinChannel(String nickname, String channelName) {
+		Channel channel = targets.get(channelName);
+		channels.add(nickname, channel);
 
-		return namesFuture;
+		for(Listener listener : listeners) {
+			listener.onJoinChannel(nickname, channel);
+		}
 	}
 	
-	private void recieveNamesInChannel(String usersString) {
-		String[] users = String.split(usersString, " ");
-		if(namesFuture != null && !namesFuture.isDone()) {
-			namesFuture.complete(users);
-		}	
-	}
-
 	//Leave channel
 	public void leaveChannel(String channel) {
 		throughSocket(e -> {
@@ -288,30 +295,20 @@ public class ServerModel {
 		});
 	}
 	
-	private void recievePartChannel(String nickname, String target) {
-		Target channel = targets.get(target);
-		channel.removeUser(target);
-
-		if(this.nickname == nickname) {
-			targets.remove(target);
-		}
+	private void recievePartChannel(String channelName) {
+		targets.remove(channelName);
 		
+		for(Listener listener : listeners) {
+			listener.onPartChannel(channel);
+		}	
 	}
-	
-	//Get all channels	
-	private CompletableFuture<String> channelsFuture = new CompletableFuture<>();
 
-	public String[] getOfferedChannels() {
-		throughSocket(e -> {
-			writer.println("LIST");
-		});
-		return channelsFuture;
-	}
+	private void recievePartChannel(String nickname, String channelName) {
+		Channel channel = targets.get(channelName);
+		channel.removeUser(nickname);	
 	
-	private void recieveOfferedChannels(messageContent) {
-		String[] channels = String.split(messageContent, " ");
-		if(namesFuture != null && !namesFuture.isDone()) {
-			channelsFuture.complete(channels);
+		for(Listener listener : listeners) {
+			listener.onPartChannel(channel);
 		}	
 	}
 	
@@ -335,9 +332,83 @@ public class ServerModel {
 			target.addMessage(message);
 
 			for(Listener listener : listeners) {
-				listener.onMessageRecieved(message);
+				listener.onMessageRecieved(sender, target, Message);
 			}
 		});
+	}
+
+	//Get names from channel	
+	private CompletableFuture<String> namesFuture = new CompletableFuture<>();
+
+	public String[] getNamesInChannel(String channel) {
+		throughSocket(e -> {
+			writer.println("NAMES " + channel);
+		});
+
+		return namesFuture;
+	}
+	
+	private void recieveNamesInChannel(String usersString) {
+		String[] users = String.split(usersString, " ");
+		if(namesFuture != null && !namesFuture.isDone()) {
+			namesFuture.complete(users);
+		}	
+	}
+
+	//Nicknames
+	private CompletableFuture<String> nicknameFuture = new CompletableFuture<>();
+
+	public void sendNickname(String nickname) {
+		throughSocket(e -> {
+			writer.println("NICK " + nickname);
+		});
+	}
+	
+	private void recieveNickname(String messageContent) {
+		String nickname = messageContent.split(", ")[1];
+
+		this.nickname = nickname;
+
+		if(nicknameFuture != null && !nicknameFuture.isDone()) {
+			nicknameFuture.complete(messageContent);
+		}
+	}
+	
+	public CompletableFuture<String> getNickname() {
+		return nicknameFuture;
+	}
+
+	//Get all channels	
+	private CompletableFuture<String> channelsFuture = new CompletableFuture<>();
+
+	public String[] getOfferedChannels() {
+		throughSocket(e -> {
+			writer.println("LIST");
+		});
+		return channelsFuture;
+	}
+	
+	private void recieveOfferedChannels(messageContent) {
+		String[] channels = String.split(messageContent, " ");
+		if(namesFuture != null && !namesFuture.isDone()) {
+			channelsFuture.complete(channels);
+		}	
+	}
+
+	//Getting current server time	
+	private CompletableFuture<String> timeFuture = new CompletableFuture<>();
+
+	public void getServerTime() {
+		throughSocket(e -> {
+			writer.println("TIME");
+		});
+		return timeFuture; 
+	}
+
+	private void recieveTime(String messageContent) {
+		if(timeFuture != null && !timeFuture.isDone()) {
+			timeFuture.complete(messageContent);
+		}	
 	}
 
 	//Miscellaneous
@@ -348,7 +419,9 @@ public class ServerModel {
 	}
 
 	private void recieveInfo(String messageContent) {
-		//TODO
+		for(Listener listener : listeners) {
+			listener.onInfo(messagContent);
+		}	
 	}
 
 	public void ping(String messageContent) {
@@ -359,12 +432,16 @@ public class ServerModel {
 
 	
 	private void recievePong(String messageContent) {
-		//TODO			
+		for(Listener listener : listeners) {
+			listener.onPong(messagContent);
+		}
+	
 	}
 	
 	//Error listening
 	private void recieveError(String messageContent) {
-		//TODO
+		String errorMessage = "Server response: " + messageContent	
+		throw new Exception(errorMessage);	
 	}
 
 
