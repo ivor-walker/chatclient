@@ -131,20 +131,35 @@ public class ServerModel {
 
 	private HashMap<String, Target> targets = new HashMap<>();
 
-	private void connect(String host, int port, String nickname) {
-		throughSocket(() -> {
-			connection = new Socket(host, port);
-			this.host = host;
-			this.port = port;
-			
-			reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-			writer = new PrintWriter(connection.getOutputStream(), true);
-			
-			listenForMessages();
-			sendNickname(nickname);
-		});
+	private CompletableFuture<Void> connectFuture = new CompletableFuture<>();
+
+	private CompletableFuture<Void> connect(String host, int port, String nickname) {
+		try {	
+			throughSocket(() -> {
+				connection = new Socket(host, port);
+				this.host = host;
+				this.port = port;
+				
+				reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+				writer = new PrintWriter(connection.getOutputStream(), true);
+				
+				listenForMessages();
+				sendNickname(nickname);
+			});
+
+			connectFuture.complete(null);
+
+		} catch (Exception e) {
+			connectFuture.completeExceptionally(e);
+		} finally {
+			return connectFuture;
+		}
 	}
-	
+
+	public CompletableFuture<Void> getConnectFuture() {
+		return connectFuture;
+	}	
+
 	//Waiting for and handling server messages	
 	private void listenForMessages() {
 		new Thread(() -> {
@@ -189,10 +204,12 @@ public class ServerModel {
 			if(splitMessage.length > MESSAGE_POSITION) {
 				String[] splitMessageContent = Arrays.copyOfRange(splitMessage, MESSAGE_POSITION, splitMessage.length);
 				message = String.join(" ", splitMessageContent); 
-				
 			}
+			
 
 			boolean refersToSelf = this.nickname == nickname;
+			
+			
 			if(refersToSelf) {	
 				switch(messageCode) {
 					case "QUIT":
@@ -239,9 +256,8 @@ public class ServerModel {
 
 		for (String messageCode : messageCodes) {
 			String messageContent = serverMessage.replaceFirst(messageCode, "");
-			messageContent = serverMessage.replaceFirst(":", "");
+			messageContent = messageContent.replaceFirst(":", "");
 			//TODO fix message processing	
-			System.out.println("HERE | " + serverMessage + " | " + messageCode + " | " + messageContent);	
 			
 			switch (messageCode) {
 				case "REPLY_NAMES":
@@ -322,7 +338,7 @@ public class ServerModel {
 
 	private void onJoinChannel(String channelName) {
 		getNamesInChannel(channelName).thenAccept(users -> {
-			Channel channel = new Channel(channelName, users);
+			Channel channel = new Channel(channelName, users);	
 			targets.put(channel.getName(), channel);	
 			
 			if(joinChannelFuture != null && !joinChannelFuture.isDone()) {
@@ -333,6 +349,10 @@ public class ServerModel {
 
 	private void onJoinChannel(String nickname, String channelName) {
 		Channel channel = (Channel) targets.get(channelName);
+		if(channel == null) {
+			return;
+		}
+	
 		channel.addUser(nickname);
 
 		for(MessageListener listener : messageListeners) {
@@ -361,6 +381,11 @@ public class ServerModel {
 
 	private void onPartChannel(String nickname, String channelName) {
 		Channel channel = (Channel) targets.get(channelName);
+		
+		if(channel == null) {
+			return;	
+		}		
+
 		channel.removeUser(nickname);	
 	
 		for(MessageListener listener : messageListeners) {
@@ -370,8 +395,10 @@ public class ServerModel {
 	
 	//Messages
 	public void sendMessage(String target, String messageContent) {
+		System.out.println("HERE | " + target + " | " + messageContent);
+	
 		throughSocket(() -> {
-			writer.println("PRIVMSG " + target + ":" + messageContent);
+			writer.println("PRIVMSG " + target + " :" + messageContent);
 		});
 	}
 
@@ -408,10 +435,15 @@ public class ServerModel {
 
 	private void onNamesInChannel(String messageContent) {
 		String[] splitMessageContent = messageContent.split(" ");
+		
 		String channelName = splitMessageContent[CHANNEL_INDEX_POSITION];
+		Channel channel = (Channel) targets.get(channelName);
+		if(channel == null) {
+			return;
+		}		
+		
 		String[] users = Arrays.copyOfRange(splitMessageContent, CHANNEL_INDEX_POSITION, splitMessageContent.length-1);
 		
-		Channel channel = (Channel) targets.get(channelName);
 		//TODO remove once issue is diagnosed	
 		System.out.println(messageContent + splitMessageContent + channelName + users);	
 		channel.overwriteUsers(users);
@@ -442,7 +474,7 @@ public class ServerModel {
 		}
 	}
 	
-	public CompletableFuture<String> getNickname() {
+	public CompletableFuture<String> getNicknameFuture() {
 		return nicknameFuture;
 	}
 

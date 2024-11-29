@@ -1,6 +1,7 @@
 import java.util.Random;
 
 public class ChatClient {
+	private static ServerController serverController;
 	private static int WIDTH = 800;
 	private static int HEIGHT = 600;
 	
@@ -16,7 +17,7 @@ public class ChatClient {
 	    return sb.toString();
 	}	
 
-	public static void main(String[] args) {
+	public static void testModel() {
 		
 		//Testing server model
 		String host = "localhost";	
@@ -31,7 +32,6 @@ public class ChatClient {
 		            serverModel.disconnect(); // Ensure clean disconnect
 		}));
 	
-		serverModel.joinChannel("bad");	
 		serverModel.joinChannel("#good");
 			
 		serverModel.sendMessage("#good", "good");	
@@ -46,7 +46,6 @@ public class ChatClient {
 		serverModel.getInfo();
 		serverModel.ping("good");
 		System.out.println(serverModel.getServerTime());
-		//serverController = new ServerController(WIDTH, HEIGHT);
 		
 		while (true) {
 	            // Keeps the program alive indefinitely
@@ -57,5 +56,10 @@ public class ChatClient {
 	                break;
 	            }
 	        }	
+	}
+
+	public static void main(String[] args) {
+		testModel();
+		serverController = new ServerController(WIDTH, HEIGHT);	
 	}
 }

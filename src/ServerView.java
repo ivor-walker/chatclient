@@ -1,5 +1,8 @@
 import javax.swing.*;
+
 import java.awt.*;
+import java.awt.event.ActionListener;
+
 import java.util.HashMap;
 
 public class ServerView extends JFrame {
@@ -39,7 +42,7 @@ public class ServerView extends JFrame {
 	}
 
 	private void toggleMainFrameVisibility(boolean mainFrameVisibility) {
-		setvisible(mainFrameVisibility);
+		setVisible(mainFrameVisibility);
 		setFormVisibility(false);	
 	}	
 
@@ -113,8 +116,9 @@ public class ServerView extends JFrame {
 		setupServerForm("", "", "", true);	
 	}
 		
-	public void setupServerForm(String host, String port, String nickname) {
-		setupServerForm(host, port, nickname, false);	
+	public void setupServerForm(String host, int port, String nickname) {
+		String portString = Integer.toString(port);
+		setupServerForm(host, portString, nickname, false);	
 	}
 
 	public void setupServerForm(String host, String port, String nickname, boolean addingServer) {
@@ -126,7 +130,7 @@ public class ServerView extends JFrame {
 		
 		if(addingServer) {	
 			commitButton.setText("Add server");
-		else {
+		} else {
 			commitButton.setText("Update server");
 		}
 
@@ -137,7 +141,7 @@ public class ServerView extends JFrame {
 	public void setConnectionResult(String result) {
 		connectionResultLabel.setText(result);
 	}
-
+	
 	//Adding, removing and updating the server list
 	public void addServer(String serverString) {
 		addServer(serverString, true);
@@ -200,16 +204,16 @@ public class ServerView extends JFrame {
 	}
 
 	//Getters
-	public void getHost() {
+	public String getHost() {
 		return hostField.getText(); 
 	}
 
-	public void getPort() {
+	public String getPort() {
 		return portField.getText(); 
 	}
 
-	public void getNickname() {
-		return nickname.getText(); 
+	public String getNickname() {
+		return nicknameField.getText(); 
 	}
 
 	//Listeners
@@ -221,16 +225,20 @@ public class ServerView extends JFrame {
 		commitButton.addActionListener(listener);
 	}
 	
-	public void viewExistingServerListener(String serverString, ActionListener listener) {
+	public void updateExistingServerListener(String serverString, ActionListener listener) {
 		JButton selectedButton = serverButtons.get(serverString);
 		selectedButton.addActionListener(listener);	
 	}
 
 	public void commitExistingServerListener(ActionListener listener) {
-		commitButton.addActionListener(listener)	
+		commitButton.addActionListener(listener);	
 	}
 
 	public void toggleEditingListener(ActionListener listener) {
 		editConnectionButton.addActionListener(listener);	
+	}
+
+	public void removeExistingServerListener(ActionListener listener) {
+		removeButton.addActionListener(listener);
 	}
 }
