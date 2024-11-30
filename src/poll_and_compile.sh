@@ -3,40 +3,36 @@
 # Directory to monitor
 WATCH_DIR="/home/iw72/Documents/CS5001/CS5001-p3-chatclient/src"
 
-# File to compile
-TARGET_FILE="$WATCH_DIR/ChatClient.java"
-
 # Command to run on changes
-echo "Watching all files in $WATCH_DIR for changes, but compiling only ChatClient.java..."
+echo "Recompiling all Java files in $WATCH_DIR..."
 
-# Declare an associative array to store the last modification times
-declare -A LAST_MOD_TIMES
-
-# Initialize the modification times for all files
-for FILE in "$WATCH_DIR"/*; do
-    [[ -e "$FILE" ]] || continue # Skip if no files are found
-    LAST_MOD_TIMES["$FILE"]=$(stat -c %Y "$FILE")
-done
-
-# Infinite loop to poll for changes
+# Infinite loop to keep checking for changes and recompiling
 while true; do
-    for FILE in "$WATCH_DIR"/*; do
-        [[ -e "$FILE" ]] || continue # Skip if the file doesn't exist anymore
+    # Clear the error.txt file at the start of each round
+    > "$WATCH_DIR/error.txt"  # Empty the error.txt file
 
-        # Get the current modification time of the file
-        CURRENT_MOD_TIME=$(stat -c %Y "$FILE")
+    # Flag to track if any errors occur
+    errors_occurred=false
 
-        # Check if the modification time has changed
-        if [[ "$CURRENT_MOD_TIME" != "${LAST_MOD_TIMES["$FILE"]}" ]]; then
-            # Compile the target file
-            javac "$TARGET_FILE" > "$WATCH_DIR/error.txt" 2>&1
+    # Loop over all Java files in the src directory
+    for FILE in "$WATCH_DIR"/*.java; do
+        [[ -e "$FILE" ]] || continue # Skip if no files are found
 
-            # Update the last modification time
-            LAST_MOD_TIMES["$FILE"]=$CURRENT_MOD_TIME
+        # Compile the current file and append errors to error.txt
+        javac "$FILE" >> "$WATCH_DIR/error.txt" 2>&1
+
+        # Check if the javac command failed (non-zero exit code)
+        if [[ $? -ne 0 ]]; then
+            errors_occurred=true
         fi
     done
 
-    # Sleep to reduce CPU usage
+    # If no errors occurred, add a success message to the error file
+    if ! $errors_occurred; then
+        echo "Compilation successful, no errors." >> "$WATCH_DIR/error.txt"
+    fi
+
+    # Sleep for 2 seconds before recompiling again
     sleep 2
 done
 

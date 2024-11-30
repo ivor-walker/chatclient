@@ -7,7 +7,15 @@ public class ChatClient {
 	
 	private static final String LOWERCASE = "abcdefghijklmnopqrstuvwxyz";
 	private static final Random RANDOM = new Random();
-	
+    
+    public static void main(String[] args) {
+	    ClientView clientView = new ClientView(WIDTH, HEIGHT);	
+
+        ServerController serverController = new ServerController(clientView.getServerPanel());	
+        TargetController targetController = new TargetController(clientView.getTargetPanel());
+        MessageController messageController = new MessageController(clientView.getMessagePanel());
+	}	
+
 	public static String generateRandomString(int length) {
 	    StringBuilder sb = new StringBuilder(length);
 	    for (int i = 0; i < length; i++) {
@@ -45,7 +53,7 @@ public class ChatClient {
 		
 		serverModel.getInfo();
 		serverModel.ping("good");
-		System.out.println(serverModel.getServerTime());
+		System.out.println(serverModel.getTimeFuture());
 		
 		while (true) {
 	            // Keeps the program alive indefinitely
@@ -58,8 +66,5 @@ public class ChatClient {
 	        }	
 	}
 
-	public static void main(String[] args) {
-		testModel();
-		serverController = new ServerController(WIDTH, HEIGHT);	
-	}
+	
 }

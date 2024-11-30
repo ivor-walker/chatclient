@@ -2,130 +2,101 @@ import java.awt.event.ActionListener;
 
 import java.util.HashMap;
 
-public class ServerController {
-	private ServerView view;
-	
+public class ServerController implements ServerListener {
 	private HashMap<String, ServerModel> serverModels = new HashMap<String, ServerModel>();	
-	private ServerModel activeServerModel;
+	public ServerModel activeServerModel;
+	private String activeServerString;
+    private ServerPanel view;
 
-	private String serverString;
-
-	public ServerController(int width, int height) {
-		view = new ServerView(width, height);
-		setupListeners();
+	public ServerController(ServerPanel view) {
+	    this.view = view;	
+        setupListeners();
 	}
 
 	
 	private void setupListeners() {
 		view.viewNewServerListener(e -> viewNewServer());
-		view.commitNewServerListener(e -> commitNewServer());
-		view.commitExistingServerListener(e -> commitExistingServer());
-
-		view.toggleEditingListener(e -> toggleEditing());
-		view.removeExistingServerListener(e -> removeExistingServer());
 	}
 	
 	private void viewNewServer() {
 		view.setupServerForm();
+		view.commitNewServerListener(e -> commitNewServer());
 	}
 
 	private void commitNewServer() {
-		ServerModel newServerModel = connect();
-		if(newServerModel == null) {
-			return;
-		}
+		ServerModel newServerModel = modelFromView();
 		
-		String serverString = newServerModel.toString();
-		view.addServer(serverString);
-		view.updateExistingServerListener(serverString, e -> viewExistingServer(serverString));
-		view.setConnectionResult("Server added successfully!");
+		newServerModel.connect().thenRun(() -> { 
+			String serverString = newServerModel.toString();
+			view.addServer(serverString);
+			view.viewExistingServerListener(serverString, e -> viewExistingServer(serverString));
+			view.setConnectionResult("Server added successfully!");
+			
+			setActive(newServerModel);
+			addToController(newServerModel);
+		});
 	}
-
-	private boolean editingEnabled = false;
-	private String editingServerString;
-	private ServerModel editingServerModel;
 	
-	private void setEditingServer(String editingServerString) {
-		this.editingServerString = editingServerString;
-		editingServerModel = serverModels.get(editingServerString);	
-	}
-
 	private void viewExistingServer(String serverString) {
 		ServerModel serverModel = serverModels.get(serverString);
-		if(editingEnabled) {
-			setEditingServer(serverString);	
-			serverModel.getNicknameFuture().thenAccept(nickname -> {
-				view.setupServerForm(serverModel.getHost(), serverModel.getPort(), nickname);
-			});
-		} else {
-			setActive(serverModel);	
-		}	
+		view.setupServerForm(serverModel.getHost(), serverModel.getPort(), serverModel.getNickname());
+		setActive(serverModel);	
+		view.removeExistingServerListener(e -> removeExistingServer());
 	}
 
-	private void commitExistingServer() {
-		ServerModel oldServerModel = serverModels.get(editingServerString);	
-		
-		ServerModel newServerModel = connect();
-		if(newServerModel == null) {
+	private void removeExistingServer() {
+		if(activeServerModel == null) {
 			return;
+		}	
+		activeServerModel.disconnect().thenRun(() -> {
+			view.removeServer(activeServerString);
+			serverModels.remove(activeServerString);
+			unsetActive();
+		});	
+	}
+
+	private ServerModel modelFromView() {
+		String host = view.getHost();
+		String nickname = view.getNickname();
+		
+		String port = view.getPort();
+		int portInt = 0;
+		if (!port.equals("")) {
+			portInt = Integer.parseInt(port);	
 		}
 
-		oldServerModel.disconnect().thenRun(() -> {
-			String newServerString = newServerModel.toString();
-
-			setEditingServer(newServerString);	
-
-			view.updateServer(oldServerModel.toString(), newServerString);
-			view.setConnectionResult("Server updated successfully!");
-		}).exceptionally(e -> {
-			handleError(e.getMessage());	
-			return null;	
-		});
+		ServerModel model = new ServerModel(host, portInt, nickname);
+		model.addServerListener(this);
+		return model;
 	}
 
-	private void toggleEditing() {
-		editingEnabled = !editingEnabled;
-		view.setEditingEnabled(editingEnabled);	
-	}
-	
-	private void removeExistingServer() {
-		editingServerModel.disconnect().thenRun(() -> {
-			view.removeServer(editingServerString);
-		}).exceptionally(e -> {
-			handleError(e.getMessage());	
-			return null;
-		});
-	}
-
-	private ServerModel connect() {
-		String host = view.getHost();
-		int port = Integer.parseInt(view.getPort());
-		String nickname = view.getNickname();
-
-		return connect(host, port, nickname);
-	}
-
-	private ServerModel connect(String host, int port, String nickname) {
-		ServerModel model = new ServerModel(host, port, nickname);
-		model.getConnectFuture().thenApply(() -> {
-			serverModels.put(model.toString(), model);			
-			return model;	
-		}).exceptionally(e -> {
-			handleError(e.getMessage());	
-			return null;
-		});
-	}
-
-	private void handleError(String errorMessage) {
-		view.setConnectionResult(errorMessage);
+	private void addToController(ServerModel model) {
+		serverModels.put(model.toString(), model);
 	}
 
 	private void setActive(ServerModel serverModel) {
-		view.changeActive(activeServerModel.toString(), serverModel.toString());
+		activeServerString = serverModel.toString();	
+
+		if(activeServerModel == null) {	
+			view.setActive(activeServerString);
+		} else {
+			String oldServerString = activeServerModel.toString();	
+			view.changeActive(oldServerString, activeServerString);
+		}
+		
 		activeServerModel = serverModel;
 	}
+
+	private void unsetActive() {
+		activeServerModel = null;
+		activeServerString = null;
+	}
 	
-	public boolean getActive() {
+	public ServerModel getActive() {
 		return this.activeServerModel;
+	}
+
+	public void onError(String errorMessage) {
+		view.setConnectionResult(errorMessage);
 	}
 }	 

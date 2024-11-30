@@ -2,6 +2,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Arrays;
+
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.net.NoRouteToHostException;
@@ -9,21 +10,19 @@ import java.net.ConnectException;
 import java.net.BindException;
 import java.net.SocketException;
 import java.io.EOFException;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.IOException;
+
 import java.util.concurrent.CompletableFuture;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
-
-import java.io.IOException;
-import java.net.Socket;
-import java.net.UnknownHostException;
-import java.net.NoRouteToHostException;
-import java.net.ConnectException;
 
 import java.lang.StackWalker;
 import java.lang.StackWalker.StackFrame;
@@ -48,137 +47,171 @@ public class ServerModel {
 	}	
 
 	private String getCallerInfo() {
-    	return StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE)
-                      .walk(frames -> frames
-                      .skip(2) // Skip 2 levels: current method + immediate caller
-                      .findFirst()
-                      .map(frame -> frame.getClassName() + "." + frame.getMethodName() + 
-                          "(" + frame.getFileName() + ":" + frame.getLineNumber() + ")")
-                      .orElse("Unknown Caller"));
+	return StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE)
+		      .walk(frames -> frames
+		      .skip(2) // Skip 2 levels: current method + immediate caller
+		      .findFirst()
+		      .map(frame -> frame.getClassName() + "." + frame.getMethodName() + 
+			  "(" + frame.getFileName() + ":" + frame.getLineNumber() + ")")
+		      .orElse("Unknown Caller"));
 	}
 
 	//Listeners only for unexpected non-replies from the server
 	private List<MessageListener> messageListeners = new ArrayList<>();
 	
-	public interface MessageListener {
-		void onQuit(String usernameWhoQuit);
-
-		void onJoinChannel(String usernameWhoJoined, Channel channel);
-
-		void onPartChannel(String usernameWhoQuit, Channel channel);
-
-		void onMessageRecieved(String nickname, Object target, Message message);
-		
-		void onError(String error);
-	}
-	
 	public void addMessageListener(MessageListener listener) {
 		messageListeners.add(listener);
 	}
 
-	//TODO implement serverlistener for onError()
-
-	public interface VoidCallable {
-		void call() throws Exception;
+	private List<ServerListener> serverListeners = new ArrayList<>();
+	
+	public void addServerListener(ServerListener listener) {
+		serverListeners.add(listener);
 	}
-	
-	private void throughSocket(VoidCallable action) {
-		System.out.println("TO | " + LocalDateTime.now().toString() + " | " + toString() + " | " + getCallerInfo());
-	
-		try {
-			action.call();
-		} catch (Exception e) {
-			e.printStackTrace();
-			// Handle all exceptions in one block
-			if (e instanceof IllegalArgumentException) {
-				throw new RuntimeException("[400] Bad Request: Invalid port number. Port must be between 0 and 65535.");
-			} else if (e instanceof NullPointerException) {
-				throw new RuntimeException("[400] Bad Request: Host cannot be null.");
-			} else if (e instanceof UnknownHostException) {
-				throw new RuntimeException("[404] Not Found: Host not found. Check the spelling of the host or your network configuration.");
-			} else if (e instanceof NoRouteToHostException) {
-				throw new RuntimeException("[403] Forbidden: No route to host. Check your firewall or network settings.");
-			} else if (e instanceof ConnectException) {
-				throw new RuntimeException("[403] Forbidden: Connection refused by server. Verify the port or server configuration.");
-			} else if (e instanceof SecurityException) {
-				throw new RuntimeException("[403] Forbidden: Permission denied. Check server security settings.");
-			} else if (e instanceof BindException) {
-				throw new RuntimeException("[503] Service Unavailable: Port is already in use. Please try a different port.");
-			} else if (e instanceof SocketException) {
-				throw new RuntimeException("[500] Internal Server Error: Connection issue with the server.");
-			} else if (e instanceof EOFException) {
-				throw new RuntimeException("[500] Internal Server Error: End of stream encountered.");
-			} else if (e instanceof IOException) {
-				throw new RuntimeException("Unknown I/O error occurred: " + e.getMessage());
-			} else if (e instanceof RuntimeException) {
-				throw new RuntimeException("Server responded with error message: " + e.getMessage());
-			} else {
-				throw new RuntimeException("Unknown error: " + e.getMessage());
-			}
+
+	private void handleException(Exception e, CompletableFuture future) {
+		handleException(e);		
+		future.completeExceptionally(e);	
+	}
+
+	private void handleException(Exception e) {
+		String errorMessage = getErrorMessage(e);	
+		for(ServerListener listener : serverListeners) {
+			System.out.println("Server listener notified of " + errorMessage);
+			listener.onError(errorMessage);
 		}
+		
+		for(MessageListener listener : messageListeners) {
+			System.out.println("Message listener notified of " + errorMessage);
+			listener.onError(errorMessage);
+		}
+
+		e.printStackTrace();
+		Thread.dumpStack();
+	}
+ 
+	private String getErrorMessage(Exception e) {
+		String errorMessage;
+		if (e instanceof IllegalArgumentException) {
+			errorMessage = "[400] Bad Request: Invalid port number. Port must be between 0 and 65535.";
+		} else if (e instanceof NullPointerException) {
+		    	errorMessage = "[400] Bad Request: Host cannot be null.";
+		} else if (e instanceof UnknownHostException) {
+		    	errorMessage = "[404] Not Found: Host not found. Check the spelling of the host or your network configuration.";
+		} else if (e instanceof NoRouteToHostException) {
+		    	errorMessage = "[403] Forbidden: No route to host. Check your firewall or network settings.";
+		} else if (e instanceof ConnectException) {
+		    	errorMessage = "[403] Forbidden: Connection refused by server. Verify the port or server configuration.";
+		} else if (e instanceof SecurityException) {
+		    	errorMessage = "[403] Forbidden: Permission denied. Check server security settings.";
+		} else if (e instanceof BindException) {
+		    	errorMessage = "[503] Service Unavailable: Port is already in use. Please try a different port.";
+		} else if (e instanceof SocketException) {
+		    	errorMessage = "[500] Internal Server Error: Connection issue with the server.";
+		} else if (e instanceof EOFException) {
+		    	errorMessage = "[500] Internal Server Error: End of stream encountered.";
+		} else if (e instanceof IOException) {
+		    	errorMessage = "Unknown I/O error occurred: " + e.getMessage();
+		} else if (e instanceof RuntimeException) {
+		    	errorMessage = "Server responded with error message: " + e.getMessage();
+		} else {
+		    	errorMessage = "Unknown error: " + e.getMessage();
+		}
+	
+		return errorMessage;
 	}
 
 	//Initialise and connect to a new server
 	public ServerModel(String host, int port, String nickname) {
-		this(host, port, nickname, true);	
-	}
-
-	public ServerModel(String host, int port, String nickname, boolean initialConnect) {
-		if(initialConnect) {
-			connect(host, port, nickname);
-		}
+		this.host = host;
+		this.port = port;
+		this.nickname = nickname;	
 	}
 
 	private HashMap<String, Target> targets = new HashMap<>();
 
-	private CompletableFuture<Void> connectFuture = new CompletableFuture<>();
+	private CompletableFuture<Void> connectFuture;
+    private boolean keepListening;
+	
+    public CompletableFuture<Void> connect() {
+        connectFuture = new CompletableFuture<>();
 
-	private CompletableFuture<Void> connect(String host, int port, String nickname) {
-		try {	
-			throughSocket(() -> {
-				connection = new Socket(host, port);
-				this.host = host;
-				this.port = port;
-				
-				reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-				writer = new PrintWriter(connection.getOutputStream(), true);
-				
-				listenForMessages();
-				sendNickname(nickname);
-			});
+        try {	
+			connection = new Socket(host, port);
 
-			connectFuture.complete(null);
-
-		} catch (Exception e) {
-			connectFuture.completeExceptionally(e);
-		} finally {
+			reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+		    keepListening = true;
+	
+            writer = new PrintWriter(connection.getOutputStream(), true);
+			
+			listenForMessages();
+			sendNickname(nickname).thenRun(() -> {
+                connectFuture.complete(null);
+            });
+			
+        } catch(Exception e) {
+            handleException(e, connectFuture);	
+		
+        } finally {
 			return connectFuture;
 		}
 	}
+    
+    //Nicknames
+	private CompletableFuture<String> nicknameFuture;
 
-	public CompletableFuture<Void> getConnectFuture() {
-		return connectFuture;
-	}	
+	private CompletableFuture<String> sendNickname(String nickname) {
+	    nicknameFuture = new CompletableFuture<>(); 
+        try {	
+			writer.println("NICK " + nickname);
+		} catch (Exception e) {
+			handleException(e, namesFuture);
+		} finally {
+			return nicknameFuture;
+		}
+	}
+	
+	private void onNickname(String messageContent) {
+		String nickname = messageContent.split(", ")[1];
+
+		this.nickname = nickname;
+
+		if(nicknameFuture != null && !nicknameFuture.isDone()) {
+			nicknameFuture.complete(messageContent);
+		}
+	}
+	
+	public String getNickname() {
+		return nickname;
+	}
 
 	//Waiting for and handling server messages	
-	private void listenForMessages() {
+   	private void listenForMessages() {
+        System.out.println("called listenformessages");
 		new Thread(() -> {
-			while(true) {
+            System.out.println("started thread");
+			while(keepListening) {
+				String message;
 				try {
-					throughSocket(() -> {	
-						String message;
-						while((message = reader.readLine()) != null) {
-							handleServerMessage(message);
-						}	
-					});
-				} catch (RuntimeException e) {
-					System.out.println("ERROR | " + e.getMessage());	
-					for(MessageListener messageListener : messageListeners) {
-						messageListener.onError(e.getMessage());
-					}
+					while((message = reader.readLine()) != null) {
+					    System.out.println("read line");	
+                        handleServerMessage(message);
+					}	
+				} catch (Exception e) {
+					handleException(e);
 				}
 			}
-		}).start();
+
+            try {
+                writer.close();
+		    	reader.close();
+                connection.close();
+
+		    } catch (Exception e) {
+                handleException(e, disconnectFuture);
+            }
+
+        }).start();
 	}
 	
 	private int TARGET_POSITION = 2;
@@ -209,11 +242,11 @@ public class ServerModel {
 
 			boolean refersToSelf = this.nickname == nickname;
 			
-			
+		    System.out.println(serverMessage + " | " + filteredMessage + " | " + nickname + " | " + messageCode	+ " | " + target + " | " + message + " | " + refersToSelf);
 			if(refersToSelf) {	
 				switch(messageCode) {
 					case "QUIT":
-						onQuit();
+						selfQuit();
 						return;
 					case "JOIN":
 						onJoinChannel(target);
@@ -286,53 +319,58 @@ public class ServerModel {
 	}
 
 	//Disconnect
-	private CompletableFuture<Void> disconnectFuture = new CompletableFuture<>();
+	private CompletableFuture<Void> disconnectFuture;
 
 	public CompletableFuture<Void> disconnect() {
-		throughSocket(() -> {
+	    disconnectFuture = new CompletableFuture<>();
+	
+        try {
 			writer.println("QUIT");
-			
-		});
-
-		return disconnectFuture;
-	}
-
-	private void onQuit() {
-		throughSocket(() -> {
-			writer.close();
-			reader.close();
-			connection.close();
-		});
-		
-		onQuit(this.nickname, false);
-		
-		if(disconnectFuture != null && !disconnectFuture.isDone()) {
-			disconnectFuture.complete(null);
+            //Remove this call if you can get the server to send a disconnect message
+            selfQuit();
+		} catch (Exception e) {
+			handleException(e, disconnectFuture);
+        } finally {
+			return disconnectFuture;
 		}
 	}
+
+	private void selfQuit() {
+        System.out.println("found onquit");	
+        keepListening = false;	
+	    
+	    quitUpdateModel(this.nickname);
+        	
+	    if(disconnectFuture != null && !disconnectFuture.isDone()) {
+	    	disconnectFuture.complete(null);
+	    }
+
+    }
 
 	private void onQuit(String nickname) {
-		onQuit(nickname, true);	
+		for(MessageListener listener : messageListeners) {
+			listener.onQuit(nickname);
+		}
+		quitUpdateModel(nickname);	
 	}
 
-	private void onQuit(String nickname, boolean tellListeners) {
+	private void quitUpdateModel(String nickname) {
 		targets.remove(nickname);
-		
-		if(tellListeners) {
-			for(MessageListener listener : messageListeners) {
-				listener.onQuit(nickname);
-			}
-		}
 	}
 	
 	//Join channel
-	private CompletableFuture<Channel> joinChannelFuture = new CompletableFuture<>();
+	private CompletableFuture<Channel> joinChannelFuture;
 
 	public CompletableFuture<Channel> joinChannel(String channel) {
-		throughSocket(() -> {
+        joinChannelFuture = new CompletableFuture<>();
+
+		try {	
 			writer.println("JOIN " + channel);	
-		});
 		
+		} catch (Exception e) {
+			handleException(e, joinChannelFuture);
+		}	
+
 		return joinChannelFuture;
 	}
 
@@ -361,14 +399,19 @@ public class ServerModel {
 	}
 	
 	//Leave channel
-	private CompletableFuture<Void> partChannelFuture = new CompletableFuture<>();	
-	
-	public CompletableFuture<Void> partChannel(String channel) {
-		throughSocket(() -> {
-			writer.println("PART " + channel);
-		});
+	private CompletableFuture<Void> partChannelFuture;
 
-		return partChannelFuture;
+	public CompletableFuture<Void> partChannel(String channel) {
+	    partChannelFuture = new CompletableFuture<>();	
+        try {
+			writer.println("PART " + channel);
+		
+		} catch (Exception e) {
+			handleException(e, partChannelFuture);
+		
+		} finally {
+			return partChannelFuture;
+		}
 	}
 	
 	private void onPartChannel(String channelName) {
@@ -395,15 +438,15 @@ public class ServerModel {
 	
 	//Messages
 	public void sendMessage(String target, String messageContent) {
-		System.out.println("HERE | " + target + " | " + messageContent);
-	
-		throughSocket(() -> {
+		try {
 			writer.println("PRIVMSG " + target + " :" + messageContent);
-		});
+		} catch (Exception e) {
+			handleException(e);
+		}
 	}
 
 	private void onMessage(String sender, String targetName, String messageContent) {
-		getServerTime().thenAccept(serverTime -> {
+		getTimeFuture().thenAccept(serverTime -> {
 			Message message = new Message(sender, targetName, messageContent, serverTime);
 			Target target = targets.get(message.getTarget()); 
 
@@ -421,14 +464,17 @@ public class ServerModel {
 	}
 	
 	//Get names from channel	
-	private CompletableFuture<String[]> namesFuture = new CompletableFuture<>();
+	private CompletableFuture<String[]> namesFuture;
 
 	public CompletableFuture<String[]> getNamesInChannel(String channel) {
-		throughSocket(() -> {
+        namesFuture = new CompletableFuture<>();
+		try {	
 			writer.println("NAMES " + channel);
-		});
-
-		return namesFuture;
+		} catch (Exception e) {
+			handleException(e, namesFuture);
+		} finally {
+			return namesFuture;
+		}
 	}
 
 	private static int CHANNEL_INDEX_POSITION = 0;	
@@ -444,8 +490,6 @@ public class ServerModel {
 		
 		String[] users = Arrays.copyOfRange(splitMessageContent, CHANNEL_INDEX_POSITION, splitMessageContent.length-1);
 		
-		//TODO remove once issue is diagnosed	
-		System.out.println(messageContent + splitMessageContent + channelName + users);	
 		channel.overwriteUsers(users);
 	
 		if(namesFuture != null && !namesFuture.isDone()) {
@@ -453,40 +497,20 @@ public class ServerModel {
 		}	
 	}
 
-	//Nicknames
-	private CompletableFuture<String> nicknameFuture = new CompletableFuture<>();
-
-	public CompletableFuture<String> sendNickname(String nickname) {
-		throughSocket(() -> {
-			writer.println("NICK " + nickname);
-		});
-
-		return nicknameFuture;
-	}
 	
-	private void onNickname(String messageContent) {
-		String nickname = messageContent.split(", ")[1];
-
-		this.nickname = nickname;
-
-		if(nicknameFuture != null && !nicknameFuture.isDone()) {
-			nicknameFuture.complete(messageContent);
-		}
-	}
-	
-	public CompletableFuture<String> getNicknameFuture() {
-		return nicknameFuture;
-	}
 
 	//Get all channels	
-	private CompletableFuture<String[]> channelsFuture = new CompletableFuture<>();
+	private CompletableFuture<String[]> channelsFuture;
 
 	public CompletableFuture<String[]> getOfferedChannels() {
-		throughSocket(() -> {
+	    channelsFuture = new CompletableFuture<>();
+        try {
 			writer.println("LIST");
-		});
-
-		return channelsFuture;
+		} catch (Exception e) {
+			handleException(e, channelsFuture);
+		} finally {
+			return channelsFuture;
+		}
 	}
 	
 	private void onOfferedChannels(String messageContent) {
@@ -498,14 +522,17 @@ public class ServerModel {
 	}
 
 	//Getting current server time	
-	private CompletableFuture<String> timeFuture = new CompletableFuture<>();
+	private CompletableFuture<String> timeFuture;
 
-	public CompletableFuture<String> getServerTime() {
-		throughSocket(() -> {
+	public CompletableFuture<String> getTimeFuture() {
+        timeFuture = new CompletableFuture<>();
+		try {
 			writer.println("TIME");
-		});
-
-		return timeFuture; 
+		} catch (Exception e) {
+			handleException(e, timeFuture);
+		} finally {
+			return timeFuture; 
+		}
 	}
 
 	private void onTime(String messageContent) {
@@ -515,14 +542,17 @@ public class ServerModel {
 	}
 
 	//Get info
-	private CompletableFuture<String> infoFuture = new CompletableFuture<>();
+	private CompletableFuture<String> infoFuture;
 	
 	public CompletableFuture<String> getInfo() {
-		throughSocket(() -> {
+        infoFuture = new CompletableFuture<>();
+		try {
 			writer.println("INFO");
-		});
-	
-		return infoFuture;
+		} catch (Exception e) {
+			handleException(e, timeFuture);
+		} finally {
+			return infoFuture;
+		}
 	}
 
 	private void onInfo(String messageContent) {
@@ -532,14 +562,17 @@ public class ServerModel {
 	}
 
 	//Ping-pong	
-	private CompletableFuture<String> pongFuture = new CompletableFuture<>();
+	private CompletableFuture<String> pongFuture;
 	
 	public CompletableFuture<String> ping(String messageContent) {
-		throughSocket(() -> {
+        pongFuture = new CompletableFuture<>(); 
+		try {	
 			writer.println("PING " + messageContent);
-		});
-
-		return pongFuture;
+		} catch (Exception e) {
+			handleException(e, pongFuture);
+		} finally {
+			return pongFuture;
+		}
 	}
 
 	private void onPong(String messageContent) {
@@ -550,7 +583,11 @@ public class ServerModel {
 	
 	//Error listening
 	private void onError(String messageContent) {
-		throw new RuntimeException(messageContent);	
+        if(messageContent.contains("Nick")) {
+            disconnect();
+        }
+
+		handleException(new RuntimeException(messageContent));	
 	}
 
 	//Getters of connection info
@@ -563,7 +600,7 @@ public class ServerModel {
 	}
 	
 	public String toString() {
-		return host + ":" + Integer.toString(port); 
+		return nickname + " | " + host + ":" + Integer.toString(port); 
 	}
 
 	//Getters of targets

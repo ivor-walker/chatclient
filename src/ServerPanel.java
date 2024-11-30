@@ -5,13 +5,12 @@ import java.awt.event.ActionListener;
 
 import java.util.HashMap;
 
-public class ServerView extends JFrame {
+public class ServerPanel extends JPanel {
 	private int width;
 	private int height;
 
 	private JPanel optionsPanel;	
 	private JButton addServerButton;
-	private JButton editConnectionButton;
 
 	private JPanel serverListPanel;
 	private HashMap<String, JButton> serverButtons = new HashMap<String, JButton>(); 
@@ -21,59 +20,36 @@ public class ServerView extends JFrame {
 	private JTextField portField;
 	private JTextField nicknameField;
 	private JButton commitButton;
-	private JButton removeButton;
 	private JLabel connectionResultLabel;
 
 	//Initialisations
-	public ServerView(int width, int height) {
-		this.width = width;
-		this.height = height;
+	public ServerPanel(int width, int height) {
+        this.width = width;
+        this.height = height;
 
 		initialiseUI();
+        setVisible(true);
 	}
 
 	private void initialiseUI() {
-		initialiseMainFrame();
-		initialiseOptions();
 		initialiseServerList();
 		initialiseForm();
-		
-		toggleMainFrameVisibility(true);
 	}
 
-	private void toggleMainFrameVisibility(boolean mainFrameVisibility) {
-		setVisible(mainFrameVisibility);
-		setFormVisibility(false);	
-	}	
-
-	private void initialiseMainFrame() {
-		setTitle("Manage connections");
-		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setSize(width, height);
-		setLayout(new BorderLayout());
-	}
-
-	private void initialiseOptions() {
-		optionsPanel = new JPanel();
-		
-		addServerButton = addButton("Add new server", optionsPanel);
-		editConnectionButton = addButton("Edit connection", optionsPanel);
-		
-		add(optionsPanel, BorderLayout.NORTH);
-	}
-
-	private static final double WIDTH_PROPORTION_SERVER_LIST = 0.2;	
+	private static final double WIDTH_PROPORTION_SERVER_LIST = 0.5;	
 	private void initialiseServerList() {
 		serverListPanel = new JPanel();
 		serverListPanel.setLayout(new BoxLayout(serverListPanel, BoxLayout.Y_AXIS));
 		
 		JScrollPane scrollPane = new JScrollPane(serverListPanel);
-		int finalWidth = (int) (WIDTH_PROPORTION_SERVER_LIST * width);
-		scrollPane.setPreferredSize(new Dimension(finalWidth, height));
+		int finalWidth = (int) (WIDTH_PROPORTION_SERVER_LIST * getWidth());
+		scrollPane.setPreferredSize(new Dimension(finalWidth, getHeight()));
 		
+		addServerButton = addButton("Add server", serverListPanel);
 		add(scrollPane, BorderLayout.WEST);	
 	}
 
+    //TODO restrict server form
 	private void initialiseForm() {
 		formPanel = new JPanel();
 		formPanel.setLayout(new GridLayout(0, 1, 10, 10));
@@ -82,11 +58,9 @@ public class ServerView extends JFrame {
 		portField = addField("Port", formPanel);
 		nicknameField = addField("Nickname", formPanel);
 
-		commitButton = addButton("[Add|Update]", formPanel);
-		removeButton = addButton("Delete server", formPanel);
+		commitButton = addButton("Add server", formPanel);
 
-		formPanel.add(new JLabel("Status: ")); 
-		connectionResultLabel = new JLabel("[connectionResult]", formPanel);
+		connectionResultLabel = new JLabel("[connectionResult]");
 		formPanel.add(connectionResultLabel);
 
 		add(formPanel, BorderLayout.CENTER);		
@@ -105,11 +79,7 @@ public class ServerView extends JFrame {
 		return newButton;
 	}
 
-	private void toggleFormVisibility(boolean isVisible) {
-		formPanel.setVisible(isVisible);
-		revalidate();
-		repaint();
-	}
+	
 
 	//Public methods for connection managing
 	public void setupServerForm() {
@@ -129,14 +99,36 @@ public class ServerView extends JFrame {
 		setConnectionResult("");	
 		
 		if(addingServer) {	
-			commitButton.setText("Add server");
-		} else {
-			commitButton.setText("Update server");
+		    addingServerForm();	
+        } else {
+            editingServerForm();
 		}
 
-		
-		toggleFormVisiblity(true);
 	}
+
+    private void addingServerForm() {
+        setCommitButton(true);
+        
+        hostField.setEnabled(true);
+        portField.setEnabled(true);
+        nicknameField.setEnabled(true);
+    }
+
+    private void editingServerForm() {
+        setCommitButton(false);
+        
+        hostField.setEnabled(false);
+        portField.setEnabled(false);
+        nicknameField.setEnabled(false);
+    }
+
+    private void setCommitButton(boolean addServer) {
+        if (addServer) {
+            commitButton.setText("Add server");
+        } else {
+            commitButton.setText("Remove server");
+        } 
+    }
 
 	public void setConnectionResult(String result) {
 		connectionResultLabel.setText(result);
@@ -148,7 +140,7 @@ public class ServerView extends JFrame {
 	}	
 
 	public void addServer(String serverKey, boolean refresh) {
-		if(serverButtons.contains(serverKey)) {
+		if(serverButtons.containsKey(serverKey)) {
 			return;
 		}
 	
@@ -167,7 +159,7 @@ public class ServerView extends JFrame {
 
 	public void removeServer(String serverKey, boolean refresh) {
 		JButton buttonToRemove = serverButtons.get(serverKey);
-		
+	
 		serverListPanel.remove(buttonToRemove);
 		serverButtons.remove(serverKey);
 	
@@ -176,31 +168,22 @@ public class ServerView extends JFrame {
 		}
 	}
 	
-	public void updateServer(String oldServerString, String newServerString) {
-		removeServer(oldServerString, false);
-		addServer(newServerString);
+	public void changeActive(String oldActiveServerKey, String newServerKey) {
+        JButton oldActiveButton = serverButtons.get(oldActiveServerKey);
+        oldActiveButton.setBorder(BorderFactory.createEmptyBorder());
+		
+		setActive(newServerKey);	
 	}
 	
-	public void changeActive(String oldActiveServerKey, String activeServerKey) {
-		JButton oldActiveButton = serverButtons.get(oldActiveButton);
-                oldActiveButton.setBorder(BorderFactory.createEmptyBorder());
-		
+	public void setActive(String activeServerKey) {
 		JButton activeButton = serverButtons.get(activeServerKey);
 		activeButton.setBorder(BorderFactory.createLineBorder(Color.RED, 3));
 		redrawServerList();
 	}
-	
+
 	private void redrawServerList() {
 		serverListPanel.revalidate();
 		serverListPanel.repaint();
-	}
-
-	public void setEditingEnabled(boolean editingEnabled) {
-		if(editingEnabled) {
-			editConnectionButton.setForeground(Color.BLACK);	
-		} else {
-			editConnectionButton.setForeground(Color.GREY);	
-		}
 	}
 
 	//Getters
@@ -222,23 +205,23 @@ public class ServerView extends JFrame {
 	}
 	
 	public void commitNewServerListener(ActionListener listener) {
-		commitButton.addActionListener(listener);
+        removeCommitButtonListeners(); 
+        commitButton.addActionListener(listener);
 	}
 	
-	public void updateExistingServerListener(String serverString, ActionListener listener) {
+	public void viewExistingServerListener(String serverString, ActionListener listener) {
 		JButton selectedButton = serverButtons.get(serverString);
 		selectedButton.addActionListener(listener);	
 	}
 
-	public void commitExistingServerListener(ActionListener listener) {
-		commitButton.addActionListener(listener);	
-	}
-
-	public void toggleEditingListener(ActionListener listener) {
-		editConnectionButton.addActionListener(listener);	
-	}
-
 	public void removeExistingServerListener(ActionListener listener) {
-		removeButton.addActionListener(listener);
+        removeCommitButtonListeners(); 
+		commitButton.addActionListener(listener);
 	}
+
+    private void removeCommitButtonListeners() {
+        for (ActionListener listener : commitButton.getActionListeners()) {
+            commitButton.removeActionListener(listener);
+        }
+    }
 }
