@@ -9,9 +9,9 @@ public class ClientView extends JFrame {
     private TargetPanel targetPanel;
     private MessagePanel messagePanel;
     
-    private static final double SERVER_WIDTH = 0.3;
+    private static final double SERVER_WIDTH = 0.2;
     private static final double TARGET_WIDTH = 0.3;
-    private static final double MESSAGE_WIDTH = 0.4;
+    private static final double MESSAGE_WIDTH = 0.5;
     
     public ClientView(int width, int height) {
         setSize(width, height);
