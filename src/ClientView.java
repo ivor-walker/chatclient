@@ -11,7 +11,7 @@ public class ClientView extends JFrame {
     
     private static final double SERVER_WIDTH = 0.2;
     private static final double TARGET_WIDTH = 0.3;
-    private static final double MESSAGE_WIDTH = 0.5;
+    private static final double MESSAGE_WIDTH = 1 - SERVER_WIDTH - TARGET_WIDTH;
     
     public ClientView(int width, int height) {
         setSize(width, height);

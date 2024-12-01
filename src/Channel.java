@@ -22,8 +22,8 @@ import java.util.regex.Matcher;
 public class Channel extends Target {
         private List<String> users;
 
-        public Channel(String name, String[] users) {
-                super(name);
+        public Channel(ServerModel model, String name, String[] users) {
+                super(model, name);
                 overwriteUsers(users);
         }
 
@@ -39,12 +39,20 @@ public class Channel extends Target {
                 users.remove(username);
         }
 
+        public void joinChannel() {
+            model.joinChannel(name);
+        }
+
+        public void partChannel() {
+            model.partChannel(name);
+        }
+
         public void overwriteUsers(String[] users) {
                 this.users = new ArrayList<>(Arrays.asList(users));
         }
 
-	public boolean isChannel() {
-		return true;
-	}
+        public boolean isChannel() {
+            return true;
+        }
 }
                                       

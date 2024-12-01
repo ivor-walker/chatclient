@@ -13,7 +13,8 @@ public class ServerPanel extends JPanel {
 	private JButton addServerButton;
 
 	private JPanel serverListPanel;
-    private JScrollPane scrollPane;	
+    private JPanel serverList;	
+    private JScrollPane serverListScrollPane;	
     private HashMap<String, JButton> serverButtons = new HashMap<String, JButton>(); 
 
 	private JPanel formPanel;
@@ -24,6 +25,9 @@ public class ServerPanel extends JPanel {
 	private JLabel connectionResultLabel;
 
 	public ServerPanel(int width, int height) {
+        this.width = width;
+        this.height = height;
+
         setPreferredSize(new Dimension(width, height));
 
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
@@ -42,84 +46,85 @@ public class ServerPanel extends JPanel {
         serverListPanel = new JPanel();
         serverListPanel.setLayout(new BorderLayout());
         serverListPanel.setBorder(BorderFactory.createTitledBorder("Server list"));
-    
+  
         // Create a sub-panel for the scrollable content
-        JPanel scrollableContentPanel = new JPanel();
-        scrollableContentPanel.setLayout(new BoxLayout(scrollableContentPanel, BoxLayout.Y_AXIS)); // Adjust layout as needed
-        scrollableContentPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5)); // Optional padding
+        serverList = new JPanel();
+        serverList.setLayout(new BoxLayout(serverList, BoxLayout.Y_AXIS));         
+        serverList.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
     
         // Wrap the scrollable content panel in a JScrollPane
-        scrollPane = new JScrollPane(scrollableContentPanel);
+        serverListScrollPane = new JScrollPane(serverList);
         int finalWidth = (int) Math.round(WIDTH_PROPORTION_SERVER_LIST * width);
-        int finalHeight = (int) Math.round(HEIGHT_PROPORTION_SERVER_LIST * width);
-        scrollPane.setPreferredSize(new Dimension(finalWidth, finalHeight));
+        int finalHeight = (int) Math.round(HEIGHT_PROPORTION_SERVER_LIST * height);
+        serverListScrollPane.setPreferredSize(new Dimension(finalWidth, finalHeight));
     
-        // Add the scrollPane to the center of the serverListPanel
-        serverListPanel.add(scrollPane, BorderLayout.CENTER);
+        // Add the serverListScrollPane to the center of the serverListPanel
+        serverListPanel.add(serverListScrollPane, BorderLayout.CENTER);
     
         // Add the "Add server" button to the bottom of the serverListPanel
         addServerButton = new JButton("Add server");
         serverListPanel.add(addServerButton, BorderLayout.SOUTH);
     
         // Add the serverListPanel to the main container
-        add(serverListPanel, BorderLayout.NORTH); // Or another layout position as needed
+        add(serverListPanel, BorderLayout.NORTH);
     }
 
 
     public void updateServerListSize(int width, int height) {
         int listWidth = (int) Math.round(WIDTH_PROPORTION_SERVER_LIST * width);
-        scrollPane.setPreferredSize(new Dimension(listWidth, height));
+        serverListScrollPane.setPreferredSize(new Dimension(listWidth, height));
         serverListPanel.setPreferredSize(new Dimension(listWidth, height));
         redrawServerPanel();
     }
 
-private void initialiseForm() {
-    formPanel = new JPanel(new GridBagLayout());
-	formPanel.setBorder(BorderFactory.createTitledBorder("New server"));
-
-    GridBagConstraints gbc = new GridBagConstraints();
-    gbc.insets = new Insets(5, 5, 5, 5); // Padding between components
-    gbc.fill = GridBagConstraints.HORIZONTAL;
-    gbc.weightx = 1; // Allow horizontal stretching
-
-    // Host Field
-    gbc.gridx = 0; gbc.gridy = 0; // Label position
-    formPanel.add(new JLabel("Host"), gbc);
-    gbc.gridy = 1; // Field position
-    hostField = new JTextField();
-    hostField.setPreferredSize(new Dimension(200, 25)); // Fixed height
-    formPanel.add(hostField, gbc);
-
-    // Port Field
-    gbc.gridx = 0; gbc.gridy = 2; // Label position
-    formPanel.add(new JLabel("Port"), gbc);
-    gbc.gridy = 3; // Field position
-    portField = new JTextField();
-    portField.setPreferredSize(new Dimension(200, 25)); // Fixed height
-    formPanel.add(portField, gbc);
-
-    // Nickname Field
-    gbc.gridx = 0; gbc.gridy = 4; // Label position
-    formPanel.add(new JLabel("Nickname"), gbc);
-    gbc.gridy = 5; // Field position
-    nicknameField = new JTextField();
-    nicknameField.setPreferredSize(new Dimension(200, 25)); // Fixed height
-    formPanel.add(nicknameField, gbc);
-
-    // Add Server Button
-    gbc.gridx = 0; gbc.gridy = 6;
-    commitButton = new JButton("Add server");
-    formPanel.add(commitButton, gbc);
-
-    // Connection Result Label
-    gbc.gridx = 0; gbc.gridy = 7;
-    connectionResultLabel = new JLabel("");
-    formPanel.add(connectionResultLabel, gbc);
-
-    add(formPanel);
-}
-
-	
+    private void initialiseForm() {
+        formPanel = new JPanel(new GridBagLayout());
+    	formPanel.setBorder(BorderFactory.createTitledBorder("New server"));
+    
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1;
+    
+        // Host Field
+        gbc.gridx = 0; gbc.gridy = 0;
+        formPanel.add(new JLabel("Host"), gbc);
+        gbc.gridy = 1; // Field position
+        hostField = new JTextField();
+        hostField.setText("mct25.teaching.cs.st-andrews.ac.uk");
+        hostField.setPreferredSize(new Dimension(200, 25));
+        formPanel.add(hostField, gbc);
+    
+        // Port Field
+        gbc.gridx = 0; gbc.gridy = 2;         
+        formPanel.add(new JLabel("Port"), gbc);
+        gbc.gridy = 3;        
+        portField = new JTextField();
+        portField.setText("21801");
+        portField.setPreferredSize(new Dimension(200, 25));
+        formPanel.add(portField, gbc);
+    
+        // Nickname Field
+        gbc.gridx = 0; gbc.gridy = 4; 
+        formPanel.add(new JLabel("Nickname"), gbc);
+        gbc.gridy = 5; 
+        nicknameField = new JTextField();
+        nicknameField.setText("test1");
+        nicknameField.setPreferredSize(new Dimension(200, 25)); 
+        formPanel.add(nicknameField, gbc);
+    
+        // Add Server Button
+        gbc.gridx = 0; gbc.gridy = 6;
+        commitButton = new JButton("Add server");
+        formPanel.add(commitButton, gbc);
+    
+        // Connection Result Label
+        gbc.gridx = 0; gbc.gridy = 7;
+        connectionResultLabel = new JLabel("");
+        formPanel.add(connectionResultLabel, gbc);
+    
+        add(formPanel);
+    }
 
 	private JTextField addField(String label, JPanel panel) {
 		panel.add(new JLabel(label));
@@ -133,8 +138,6 @@ private void initialiseForm() {
 		panel.add(newButton, direction);
 		return newButton;
 	}
-
-	
 
 	//Public methods for connection managing
 	public void setupServerForm() {
@@ -195,13 +198,13 @@ private void initialiseForm() {
 	}	
 
 	public void addServer(String serverKey, boolean refresh) {
-		if(serverButtons.containsKey(serverKey)) {
+        if(serverButtons.containsKey(serverKey)) {
 			return;
 		}
 	
 		JButton serverValue = new JButton(serverKey);
+		serverList.add(serverValue);
 		serverButtons.put(serverKey, serverValue);
-		serverListPanel.add(serverValue);
 
 		if(refresh == true) {
 			redrawServerPanel();	
@@ -215,7 +218,7 @@ private void initialiseForm() {
 	public void removeServer(String serverKey, boolean refresh) {
 		JButton buttonToRemove = serverButtons.get(serverKey);
 	
-		serverListPanel.remove(buttonToRemove);
+		serverList.remove(buttonToRemove);
 		serverButtons.remove(serverKey);
 	
 		if(refresh == true) {	

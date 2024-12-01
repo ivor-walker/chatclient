@@ -46,8 +46,8 @@ public class Message {
                 return this.serverTime;
         }
 
-	public String getTarget() {
-		return target;
-	}
+	    public String getTarget() {
+	    	return target;
+	    }
 }
 

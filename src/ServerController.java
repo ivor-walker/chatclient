@@ -40,9 +40,10 @@ public class ServerController implements ServerListener {
 	    System.out.println("clicked");	
         ServerModel newServerModel = modelFromView();
 		
-		newServerModel.connect().thenRun(() -> { 
+		newServerModel.connect().thenRun(() -> {
 			String serverString = newServerModel.toString();
 			view.addServer(serverString);
+            serverModels.put(serverString, newServerModel); 
 			view.viewExistingServerListener(serverString, e -> viewExistingServer(serverString));
 			view.setConnectionResult("Server added successfully!");
 			
@@ -52,7 +53,9 @@ public class ServerController implements ServerListener {
 	}
 	
 	private void viewExistingServer(String serverString) {
-		ServerModel serverModel = serverModels.get(serverString);
+	    System.out.println(serverString);	
+        ServerModel serverModel = serverModels.get(serverString);
+	    System.out.println(serverModel);	
 		view.setupServerForm(serverModel.getHost(), serverModel.getPort(), serverModel.getNickname());
 		setActive(serverModel);	
 		view.removeExistingServerListener(e -> removeExistingServer());
@@ -121,6 +124,7 @@ public class ServerController implements ServerListener {
     private List<ActiveServerListener> activeListeners = new ArrayList<>();
 
     public void addActiveListener(ActiveServerListener activeListener) {
+        System.out.println("listener added"); 
         activeListeners.add(activeListener);
     }
 }	 

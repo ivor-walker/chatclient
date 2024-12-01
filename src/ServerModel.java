@@ -36,16 +36,6 @@ public class ServerModel {
 	private int port;	
 	private String nickname;
 	
-	private boolean isActive;
-
-	public void setActivity(boolean activityState) {
-		this.isActive = activityState;	
-	}
-
-	public boolean getActivity() {
-		return isActive;
-	}	
-
 	private String getCallerInfo() {
 	return StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE)
 		      .walk(frames -> frames
@@ -240,7 +230,7 @@ public class ServerModel {
 			}
 			
 
-			boolean refersToSelf = this.nickname == nickname;
+			boolean refersToSelf = this.nickname.equals(nickname);
 			
 		    System.out.println(serverMessage + " | " + filteredMessage + " | " + nickname + " | " + messageCode	+ " | " + target + " | " + message + " | " + refersToSelf);
 			if(refersToSelf) {	
@@ -289,9 +279,9 @@ public class ServerModel {
 
 		for (String messageCode : messageCodes) {
 			String messageContent = serverMessage.replaceFirst(messageCode, "");
-			messageContent = messageContent.replaceFirst(":", "");
+			messageContent = messageContent.replaceFirst(":", "").trim();
 			//TODO fix message processing	
-			
+		    System.out.println(serverMessage + " | " + messageCode + " | " + messageContent);	
 			switch (messageCode) {
 				case "REPLY_NAMES":
 					onNamesInChannel(messageContent);
@@ -376,7 +366,7 @@ public class ServerModel {
 
 	private void onJoinChannel(String channelName) {
 		getNamesInChannel(channelName).thenAccept(users -> {
-			Channel channel = new Channel(channelName, users);	
+			Channel channel = new Channel(this, channelName, users);	
 			targets.put(channel.getName(), channel);	
 			
 			if(joinChannelFuture != null && !joinChannelFuture.isDone()) {
@@ -451,8 +441,8 @@ public class ServerModel {
 			Target target = targets.get(message.getTarget()); 
 
 			if(target == null) {
-				target = new Target(message.getTarget());
-				targets.put(target.getName(), target);
+				target = new Target(this, message.getTarget());
+                targets.put(target.getName(), target);
 			}
 
 			target.addMessage(message);
@@ -481,17 +471,18 @@ public class ServerModel {
 
 	private void onNamesInChannel(String messageContent) {
 		String[] splitMessageContent = messageContent.split(" ");
-		
 		String channelName = splitMessageContent[CHANNEL_INDEX_POSITION];
 		Channel channel = (Channel) targets.get(channelName);
-		if(channel == null) {
-			return;
-		}		
-		
-		String[] users = Arrays.copyOfRange(splitMessageContent, CHANNEL_INDEX_POSITION, splitMessageContent.length-1);
-		
-		channel.overwriteUsers(users);
-	
+        		
+		String[] users = Arrays.copyOfRange(splitMessageContent, CHANNEL_INDEX_POSITION + 1, splitMessageContent.length-1);
+	    
+        for(String user: users) {
+            System.out.println("user: " + user);
+        }	
+        if(channel != null) {
+            channel.overwriteUsers(users);
+		}
+
 		if(namesFuture != null && !namesFuture.isDone()) {
 			namesFuture.complete(users);
 		}	
@@ -515,7 +506,7 @@ public class ServerModel {
 	
 	private void onOfferedChannels(String messageContent) {
 		String[] channels = messageContent.split(" ");
-		
+        
         if(channelsFuture != null && !channelsFuture.isDone()) {
 			channelsFuture.complete(channels);
 		}	
@@ -619,4 +610,8 @@ public class ServerModel {
 			.filter(target -> target.isChannel())
 			.toArray(Channel[]::new);
 	}
+
+    public void addTarget(Target target) {
+        targets.put(target.getName(), target);
+    }
 }

@@ -21,11 +21,13 @@ import java.util.regex.Matcher;
 import java.util.Comparator;
 
 public class Target {
-        private String name;
-        private List<Message> messages = new ArrayList<>();
+        protected String name;
+        protected List<Message> messages = new ArrayList<>();
+        protected ServerModel model;
 
-        public Target(String name) {
+        public Target(ServerModel model, String name) {
                 this.name = name;
+                this.model = model;
         }
 
         public List<Message> getMessages() {
@@ -44,6 +46,10 @@ public class Target {
                 );
         }
 
+        public void sendMessage(String target, String messageContent) {
+                model.sendMessage(target, messageContent);
+        }
+
         public void addMessage(Message message) {
                 messages.add(message);
         }
@@ -52,8 +58,8 @@ public class Target {
                 return name;
         }
 
-	public boolean isChannel() {
-		return false;
-	}
+	    public boolean isChannel() {
+	    	return false;
+	    }
 }
 
