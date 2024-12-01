@@ -1,6 +1,8 @@
 import java.awt.event.ActionListener;
 
 import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
 
 public class ServerController implements ServerListener {
 	private HashMap<String, ServerModel> serverModels = new HashMap<String, ServerModel>();	
@@ -16,15 +18,27 @@ public class ServerController implements ServerListener {
 	
 	private void setupListeners() {
 		view.viewNewServerListener(e -> viewNewServer());
-	}
-	
+		view.commitNewServerListener(e -> commitNewServer());
+        addShutdownHook();
+	}   
+
+    private void addShutdownHook() {
+	    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("Shutting down...");
+	        for(String serverKey : serverModels.keySet()) {
+                serverModels.get(serverKey).disconnect();
+            } 
+        }));
+    }
+
 	private void viewNewServer() {
-		view.setupServerForm();
+        view.setupServerForm();
 		view.commitNewServerListener(e -> commitNewServer());
 	}
 
 	private void commitNewServer() {
-		ServerModel newServerModel = modelFromView();
+	    System.out.println("clicked");	
+        ServerModel newServerModel = modelFromView();
 		
 		newServerModel.connect().thenRun(() -> { 
 			String serverString = newServerModel.toString();
@@ -85,12 +99,15 @@ public class ServerController implements ServerListener {
 		}
 		
 		activeServerModel = serverModel;
+
+        for(ActiveServerListener activeListener : activeListeners) {
+            activeListener.onSetActiveServer(serverModel);
+        }
 	}
 
 	private void unsetActive() {
-		activeServerModel = null;
-		activeServerString = null;
-	}
+        setActive(null);	
+    }
 	
 	public ServerModel getActive() {
 		return this.activeServerModel;
@@ -99,4 +116,11 @@ public class ServerController implements ServerListener {
 	public void onError(String errorMessage) {
 		view.setConnectionResult(errorMessage);
 	}
+
+    //Listeners
+    private List<ActiveServerListener> activeListeners = new ArrayList<>();
+
+    public void addActiveListener(ActiveServerListener activeListener) {
+        activeListeners.add(activeListener);
+    }
 }	 

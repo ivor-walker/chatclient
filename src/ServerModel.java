@@ -515,8 +515,8 @@ public class ServerModel {
 	
 	private void onOfferedChannels(String messageContent) {
 		String[] channels = messageContent.split(" ");
-
-		if(channelsFuture != null && !channelsFuture.isDone()) {
+		
+        if(channelsFuture != null && !channelsFuture.isDone()) {
 			channelsFuture.complete(channels);
 		}	
 	}
@@ -604,13 +604,17 @@ public class ServerModel {
 	}
 
 	//Getters of targets
-	public Target[] getUsers() {
+    public HashMap<String, Target> getTargets() {
+        return targets;
+    }	
+       
+    public Target[] getUsers() {
 		return targets.values().stream()
 			.filter(target -> !(target.isChannel()))
 			.toArray(Target[]::new);
 	}
 
-	public Channel[] getChannels() {
+	public Channel[] getJoinedChannels() {
 		return targets.values().stream()
 			.filter(target -> target.isChannel())
 			.toArray(Channel[]::new);

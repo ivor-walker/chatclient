@@ -11,7 +11,6 @@ public class MessagePanel extends JPanel {
     private int height;
     
     public MessagePanel(int width, int height) {
-        this.width = width;
-        this.height = height;
+        setPreferredSize(new Dimension(width, height));
     }
 }

@@ -13,7 +13,8 @@ public class ServerPanel extends JPanel {
 	private JButton addServerButton;
 
 	private JPanel serverListPanel;
-	private HashMap<String, JButton> serverButtons = new HashMap<String, JButton>(); 
+    private JScrollPane scrollPane;	
+    private HashMap<String, JButton> serverButtons = new HashMap<String, JButton>(); 
 
 	private JPanel formPanel;
 	private JTextField hostField;
@@ -22,34 +23,38 @@ public class ServerPanel extends JPanel {
 	private JButton commitButton;
 	private JLabel connectionResultLabel;
 
-	//Initialisations
 	public ServerPanel(int width, int height) {
-        this.width = width;
-        this.height = height;
+        setPreferredSize(new Dimension(width, height));
 
-		initialiseUI();
-        setVisible(true);
-	}
+        setLayout(new BorderLayout());
 
-	private void initialiseUI() {
 		initialiseServerList();
 		initialiseForm();
-	}
 
+        redrawServerPanel();
+	}
+    
 	private static final double WIDTH_PROPORTION_SERVER_LIST = 0.5;	
 	private void initialiseServerList() {
 		serverListPanel = new JPanel();
 		serverListPanel.setLayout(new BoxLayout(serverListPanel, BoxLayout.Y_AXIS));
 		
-		JScrollPane scrollPane = new JScrollPane(serverListPanel);
-		int finalWidth = (int) (WIDTH_PROPORTION_SERVER_LIST * getWidth());
-		scrollPane.setPreferredSize(new Dimension(finalWidth, getHeight()));
-		
+		scrollPane = new JScrollPane(serverListPanel);
+		int finalWidth = (int) Math.round(WIDTH_PROPORTION_SERVER_LIST * width);
+		scrollPane.setPreferredSize(new Dimension(finalWidth, height));
+	    updateServerListSize(finalWidth, height);
+	
 		addServerButton = addButton("Add server", serverListPanel);
 		add(scrollPane, BorderLayout.WEST);	
 	}
 
-    //TODO restrict server form
+    public void updateServerListSize(int width, int height) {
+        int listWidth = (int) Math.round(WIDTH_PROPORTION_SERVER_LIST * width);
+        scrollPane.setPreferredSize(new Dimension(listWidth, height));
+        serverListPanel.setPreferredSize(new Dimension(listWidth, height));
+        redrawServerPanel();
+    }
+
 	private void initialiseForm() {
 		formPanel = new JPanel();
 		formPanel.setLayout(new GridLayout(0, 1, 10, 10));
@@ -60,7 +65,7 @@ public class ServerPanel extends JPanel {
 
 		commitButton = addButton("Add server", formPanel);
 
-		connectionResultLabel = new JLabel("[connectionResult]");
+		connectionResultLabel = new JLabel("");
 		formPanel.add(connectionResultLabel);
 
 		add(formPanel, BorderLayout.CENTER);		
@@ -149,7 +154,7 @@ public class ServerPanel extends JPanel {
 		serverListPanel.add(serverValue);
 
 		if(refresh == true) {
-			redrawServerList();	
+			redrawServerPanel();	
 		}
 	}
 	
@@ -164,7 +169,7 @@ public class ServerPanel extends JPanel {
 		serverButtons.remove(serverKey);
 	
 		if(refresh == true) {	
-			redrawServerList();
+			redrawServerPanel();
 		}
 	}
 	
@@ -178,10 +183,10 @@ public class ServerPanel extends JPanel {
 	public void setActive(String activeServerKey) {
 		JButton activeButton = serverButtons.get(activeServerKey);
 		activeButton.setBorder(BorderFactory.createLineBorder(Color.RED, 3));
-		redrawServerList();
+		redrawServerPanel();
 	}
 
-	private void redrawServerList() {
+	private void redrawServerPanel() {
 		serverListPanel.revalidate();
 		serverListPanel.repaint();
 	}
