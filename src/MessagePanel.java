@@ -13,7 +13,6 @@ public class MessagePanel extends JPanel {
     private JTextArea messageInputArea;
     private JButton sendButton;
     private JButton leaveChannelButton;
-    private JButton joinChannelButton;
 
     public MessagePanel(int width, int height) {
         this.width = width;
@@ -38,16 +37,7 @@ public class MessagePanel extends JPanel {
         
         // Connection status label
         
-        // "Leave Channel" button (aligned to the right of the connection status)
-        leaveChannelButton = new JButton("Leave channel");
-        statusPanel.add(leaveChannelButton, BorderLayout.WEST);
-        leaveChannelButton.setVisible(true);
-        
-        // "Leave Channel" button (aligned to the right of the connection status)
-        joinChannelButton = new JButton("Join channel");
-        statusPanel.add(joinChannelButton, BorderLayout.EAST);
-        joinChannelButton.setVisible(true);
-
+                
         // Add the status panel below the message history
         messageHistoryPanel.add(statusPanel, BorderLayout.SOUTH);
         

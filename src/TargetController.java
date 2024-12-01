@@ -29,6 +29,7 @@ public class TargetController implements ActiveServerListener {
     private void setupListeners() {
         view.addCreateNewChannelListener(e -> createNewChannel());
         view.addMessageNewUserListener(e -> messageNewUser());    
+        view.addLeaveChannelListener(e -> leaveChannel());    
     }
 
     public void refreshUsersInHistory() {
@@ -133,6 +134,20 @@ public class TargetController implements ActiveServerListener {
         view.addNewChannel(newChannelKey); 
         setActiveTarget(newChannelKey); 
         view.addActiveTargetListener(newChannelKey, e -> setActiveTarget(newChannelKey)); 
+    }
+
+    private void leaveChannel() {
+        if(!activeTarget.isChannel()) {
+            return;
+        }
+        
+        String channelToLeave = activeTargetName;
+        activeModel.partChannel(channelToLeave).thenRun(() -> { 
+            view.leaveChannel(channelToLeave);
+            
+            activeTarget = null;
+            activeTargetName = null; 
+        });
     }
 
     private void messageNewUser() {

@@ -14,6 +14,7 @@ public class TargetPanel extends JPanel {
     private JScrollPane channelListScrollPane; 
     private JTextField newChannelField; 
     private JButton createChannelButton;
+    private JButton leaveChannelButton;
  
     private JPanel userHistoryPanel;
     private JPanel usersInHistoryList;
@@ -87,8 +88,12 @@ public class TargetPanel extends JPanel {
     
         newChannelForm.setMaximumSize(new Dimension(200, 50));
     
+        // "Leave Channel" button (aligned to the right of the connection status)
+        leaveChannelButton = new JButton("Leave active channel");
+
         channelPanel.add(newChannelForm);
         channelPanel.add(channelListScrollPane);
+        channelPanel.add(leaveChannelButton);
     
         // Finally, add the channel panel to the main window
         add(channelPanel);
@@ -139,7 +144,8 @@ public class TargetPanel extends JPanel {
     
         // Add the scroll pane to the main panel
         userHistoryPanel.add(userHistoryScrollPane);
-    
+        
+        
         // Finally, add the user history panel to the main window (or to a container in your UI)
         add(userHistoryPanel);
     }
@@ -260,6 +266,13 @@ public class TargetPanel extends JPanel {
         channelListButtons.remove(channelKey);
         refresh();
     }
+    
+    public void leaveChannel(String channelKey) {
+        JButton buttonToLeave = channelListButtons.get(channelKey);
+        buttonToLeave.setForeground(Color.GRAY); 
+        unsetActiveTarget(channelKey);
+        refresh();
+    }
 
     //Listeners
     public JButton findButtonInAllMaps(String key) {
@@ -283,12 +296,15 @@ public class TargetPanel extends JPanel {
     }
 
     public void setActiveTarget(String oldActiveKey, String newActiveKey) {
-        JButton oldActiveButton = findButtonInAllMaps(oldActiveKey);
-        oldActiveButton.setBorder(BorderFactory.createEmptyBorder());
-
+        unsetActiveTarget(oldActiveKey); 
         setActiveTarget(newActiveKey);
     }
 
+    public void unsetActiveTarget(String oldActiveKey) {
+        JButton oldActiveButton = findButtonInAllMaps(oldActiveKey);
+        oldActiveButton.setBorder(BorderFactory.createEmptyBorder());
+
+    }
     public void setActiveTarget(String activeKey) {
         JButton activeButton = findButtonInAllMaps(activeKey);
         System.out.println(activeKey); 
@@ -315,6 +331,10 @@ public class TargetPanel extends JPanel {
         createChannelButton.addActionListener(listener); 
     }
     
+    public void addLeaveChannelListener(ActionListener listener) {
+        leaveChannelButton.addActionListener(listener); 
+    }
+
     public void addMessageNewUserListener(ActionListener listener) {
         createUserButton.addActionListener(listener); 
     }
