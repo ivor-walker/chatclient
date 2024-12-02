@@ -14,6 +14,7 @@ public class TargetPanel extends JPanel {
     private JScrollPane channelListScrollPane; 
     private JTextField newChannelField; 
     private JButton createChannelButton;
+    private JButton refreshChannelsButton;
     private JButton leaveChannelButton;
  
     private JPanel userHistoryPanel;
@@ -90,9 +91,11 @@ public class TargetPanel extends JPanel {
     
         // "Leave Channel" button (aligned to the right of the connection status)
         leaveChannelButton = new JButton("Leave active channel");
+        refreshChannelsButton = new JButton("Refresh channel list");
 
         channelPanel.add(newChannelForm);
         channelPanel.add(channelListScrollPane);
+        channelPanel.add(refreshChannelsButton);
         channelPanel.add(leaveChannelButton);
     
         // Finally, add the channel panel to the main window
@@ -247,7 +250,6 @@ public class TargetPanel extends JPanel {
     }
 
     public void addNewChannel(String channelKey) {
-        System.out.println("adding new channel: " + channelKey + " " + channelKey.equals(""));
         JButton newChannelButton = addButton(channelKey, channelList);
         newChannelButton.setForeground(Color.GRAY); 
         channelListButtons.put(channelKey, newChannelButton);  // Assuming you maintain a map for channels
@@ -307,7 +309,6 @@ public class TargetPanel extends JPanel {
     }
     public void setActiveTarget(String activeKey) {
         JButton activeButton = findButtonInAllMaps(activeKey);
-        System.out.println(activeKey); 
         activeButton.setForeground(Color.BLACK); 
         activeButton.setBorder(BorderFactory.createLineBorder(Color.RED, 3));
         
@@ -324,13 +325,23 @@ public class TargetPanel extends JPanel {
     }
 
     public String getNewUserFieldValue() {
-        return newUserField.getText();
+        String newUser = newUserField.getText();
+        
+        if (newUser.startsWith("#")) {
+            return newUser.substring(1);
+        } 
+
+        return newUser; 
     }
     
     public void addCreateNewChannelListener(ActionListener listener) {
         createChannelButton.addActionListener(listener); 
     }
     
+    public void addRefreshChannelsListener(ActionListener listener) {
+        refreshChannelsButton.addActionListener(listener); 
+    }
+
     public void addLeaveChannelListener(ActionListener listener) {
         leaveChannelButton.addActionListener(listener); 
     }

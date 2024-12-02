@@ -5,6 +5,8 @@ import java.awt.event.ActionListener;
 
 import java.util.HashMap;
 
+import java.util.Random;
+
 public class ServerPanel extends JPanel {
 	private int width;
 	private int height;
@@ -103,13 +105,14 @@ public class ServerPanel extends JPanel {
         portField.setText("21801");
         portField.setPreferredSize(new Dimension(200, 25));
         formPanel.add(portField, gbc);
-    
+        
+     
         // Nickname Field
         gbc.gridx = 0; gbc.gridy = 4; 
         formPanel.add(new JLabel("Nickname"), gbc);
         gbc.gridy = 5; 
         nicknameField = new JTextField();
-        nicknameField.setText("test1");
+        nicknameField.setText(generateNewName());
         nicknameField.setPreferredSize(new Dimension(200, 25)); 
         formPanel.add(nicknameField, gbc);
     
@@ -124,6 +127,12 @@ public class ServerPanel extends JPanel {
         formPanel.add(connectionResultLabel, gbc);
     
         add(formPanel);
+    }
+
+    private String generateNewName() {
+        Random rand = new Random();
+        int randomNumber = rand.nextInt(9000) + 1000;
+        return "Test" + String.valueOf(randomNumber);
     }
 
 	private JTextField addField(String label, JPanel panel) {

@@ -51,20 +51,16 @@ public class ClientView extends JFrame {
         int currentWidth = getWidth();
         int currentHeight = getHeight();
 
-        System.out.println(currentWidth + ", " + currentHeight);
 
         int serverWidth = (int) Math.round(SERVER_WIDTH * currentWidth);
         serverPanel.setPreferredSize(new Dimension(serverWidth, currentHeight));
         serverPanel.updateServerListSize(serverWidth, currentHeight); 
-        System.out.println(serverWidth); 
         
         int targetWidth = (int) Math.round(TARGET_WIDTH * currentWidth);
         targetPanel.setPreferredSize(new Dimension(targetWidth, currentHeight));
-        System.out.println(targetWidth); 
         
         int messageWidth = (int) Math.round(MESSAGE_WIDTH * currentWidth);
         messagePanel.setPreferredSize(new Dimension(messageWidth, currentHeight));
-        System.out.println(messageWidth); 
         
         refreshFrame();
     }

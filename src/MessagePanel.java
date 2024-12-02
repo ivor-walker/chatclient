@@ -25,12 +25,12 @@ public class MessagePanel extends JPanel {
         messageHistoryPanel = new JPanel();
         messageHistoryPanel.setLayout(new BorderLayout());
         messageHistoryPanel.setBorder(BorderFactory.createTitledBorder("Message history"));
-        
+      
         messageHistoryArea = new JTextArea(20, 30);
         messageHistoryArea.setEditable(false);  // Make it read-only
         JScrollPane messageHistoryScrollPane = new JScrollPane(messageHistoryArea);
         messageHistoryPanel.add(messageHistoryScrollPane, BorderLayout.CENTER);
-        
+
         // Create a panel to hold the connection status and the leave button
         JPanel statusPanel = new JPanel();
         statusPanel.setLayout(new BorderLayout());
@@ -70,18 +70,34 @@ public class MessagePanel extends JPanel {
     }
 
     // Method to append message to the message history
-    public void appendMessageToHistory(String message) {
+    public void addMessage(String message) {
         messageHistoryArea.append(message + "\n");
+        refresh();
     }
 
     // Method to clear the input area after message is sent
-    public void clearMessageInput() {
+    public void resetInputArea() {
         messageInputArea.setText("");
+    }
+
+    public void resetMessageHistory() {
+        resetInputArea(); 
+        messageHistoryArea.setText(""); 
+        refresh();
+    }
+
+    public void refresh() {
+        revalidate();
+        repaint();
     }
 
     // Method to get the current input message
     public String getMessageInput() {
         return messageInputArea.getText();
+    }
+
+    public void setHistoryName(String targetName) {
+        messageHistoryPanel.setBorder(BorderFactory.createTitledBorder("Message history for: " + targetName));
     }
 
     public void channelSetup(boolean isTargetChannel) {

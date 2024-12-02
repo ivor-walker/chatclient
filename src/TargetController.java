@@ -9,7 +9,7 @@ import java.util.Arrays;
 import java.util.Map;
 
 
-public class TargetController implements ActiveServerListener {
+public class TargetController implements ActiveServerListener, TargetListener {
     private TargetPanel view;
     private ServerModel activeModel;
     private Target activeTarget;
@@ -30,6 +30,7 @@ public class TargetController implements ActiveServerListener {
         view.addCreateNewChannelListener(e -> createNewChannel());
         view.addMessageNewUserListener(e -> messageNewUser());    
         view.addLeaveChannelListener(e -> leaveChannel());    
+        view.addRefreshChannelsListener(e -> refreshChannels());    
     }
 
     public void refreshUsersInHistory() {
@@ -52,12 +53,12 @@ public class TargetController implements ActiveServerListener {
     }
 
     private void addUsersInChannel() {
-        activeModel.getNamesInChannel(activeTargetName).thenAccept(userKeys -> {
-            for(String userKey: userKeys) {
-                view.addToChannelUsers(userKey);
-                view.addActiveTargetListener(userKey, e -> setActiveTarget(userKey));
-            }
-        });
+        Channel activeChannel = (Channel) activeTarget; 
+        List<String> userKeys = activeChannel.getUsers();     
+        for(String userKey: userKeys) {
+            view.addToChannelUsers(userKey);
+            view.addActiveTargetListener(userKey, e -> setActiveTarget(userKey));
+        }
     }
 
     private void refreshChannels() {
@@ -71,11 +72,8 @@ public class TargetController implements ActiveServerListener {
                 .filter(e -> !e.isEmpty())
                 .toArray(String[]::new); 
         
-            Channel[] joinedChannels = activeModel.getJoinedChannels();
-            List<String> joinedChannelKeys = Arrays.stream(joinedChannels) 
-                .map(Channel::getName)
-                .toList();
-
+            List<String> joinedChannelKeys = getJoinedChannelKeys();
+ 
             for(String channelKey: channelKeys) {
                 if (joinedChannelKeys.contains(channelKey)) {
                     view.addJoinedChannel(channelKey);
@@ -85,6 +83,13 @@ public class TargetController implements ActiveServerListener {
                 view.addActiveTargetListener(channelKey, e -> setActiveTarget(channelKey)); 
             }            
         });
+    }
+
+    private List<String> getJoinedChannelKeys() {
+        Channel[] joinedChannels = activeModel.getJoinedChannels(); 
+        return Arrays.stream(joinedChannels) 
+                .map(Channel::getName)
+                .toList();
     }
 
     private void setActiveTarget(String targetKey) {
@@ -108,7 +113,6 @@ public class TargetController implements ActiveServerListener {
    
     private void setActiveTarget(Target target) {
             String targetKey = target.getName();
-            System.out.println("setting active target key: " + targetKey); 
             if(activeTarget != null) { 
                 view.setActiveTarget(activeTarget.getName(), targetKey);
             } else {
@@ -117,20 +121,48 @@ public class TargetController implements ActiveServerListener {
 
             activeTarget = target;
             activeTargetName = targetKey;
-            
-            if(target.isChannel()) { 
+
+            System.out.println("TargetController: new active target set in model " + activeTarget.getServer());  
+
+            if(activeTarget.isChannel()) { 
                 refreshUsersInChannel();
-            } 
+            }
+
+        for(ActiveTargetListener listener: activeListeners) {
+            listener.onSetActiveTarget(target);
+        }
     }
- 
+
+    private void unsetActiveTarget() {
+        activeTarget = null;
+        activeTargetName = null;
+
+        for(ActiveTargetListener listener: activeListeners) {
+            listener.onSetActiveTarget(null);
+        }       
+    } 
+
     public void onSetActiveServer(ServerModel activeModel) {
-        this.activeModel = activeModel;
-        refreshUsersInHistory(); 
-        refreshChannels();
+            unsetActiveTarget();
+            this.activeModel = activeModel;
+            System.out.println("TargetController: new active model" + activeModel.toString());  
+            this.activeModel.addTargetListener(this);
+            refreshUsersInHistory(); 
+            refreshChannels();
     }
 
     private void createNewChannel() {
+        if(activeModel == null) {
+            return;
+        }
+
         String newChannelKey = view.getNewChannelFieldValue();
+        
+        List<String> joinedChannelKeys = getJoinedChannelKeys();
+        if (joinedChannelKeys.contains(newChannelKey)) {
+            return;
+        }
+
         view.addNewChannel(newChannelKey); 
         setActiveTarget(newChannelKey); 
         view.addActiveTargetListener(newChannelKey, e -> setActiveTarget(newChannelKey)); 
@@ -144,17 +176,68 @@ public class TargetController implements ActiveServerListener {
         String channelToLeave = activeTargetName;
         activeModel.partChannel(channelToLeave).thenRun(() -> { 
             view.leaveChannel(channelToLeave);
-            
-            activeTarget = null;
-            activeTargetName = null; 
+            unsetActiveTarget();    
         });
     }
-
+        
+    List<String> userHistoryKeys = new ArrayList<>();
     private void messageNewUser() {
+        if(activeModel == null) {
+            return;
+        }
+
         String newUserKey = view.getNewUserFieldValue();
+        
+        if(userHistoryKeys.contains(newUserKey)) {
+            return;
+        }
+         
         view.addToUserHistory(newUserKey);
-        setActiveTarget(newUserKey); 
+        setActiveTarget(newUserKey);
+        userHistoryKeys.add(newUserKey); 
         view.addActiveTargetListener(newUserKey, e -> setActiveTarget(newUserKey)); 
+    }
+
+    public void onQuit(String usernameWhoQuit) {
+        view.deleteFromUserHistory(usernameWhoQuit);
+        userHistoryKeys.remove(usernameWhoQuit);
+    }
+
+    public void onJoinChannel(String usernameWhoJoined, Channel channel) {
+        if (!isTargetInActive(channel)) {
+            return;
+        }
+
+        view.addToChannelUsers(usernameWhoJoined);
+    }
+
+    public void onPartChannel(String usernameWhoQuit, Channel channel) {
+       if (!isTargetInActive(channel)) {
+            return;
+        } 
+        
+        view.deleteFromChannelUsers(usernameWhoQuit);
+    }
+
+    public void onMessageRecieved(Message message) {
+        if (!isMessageFromActive(message)) {
+            return;
+        }
+        
+        System.out.println("TargetController: Message notified from " + message.getSender() + " to " + message.getTarget() + " saying " + message.getMessage());
+
+        for(ActiveTargetListener listener: activeListeners) {
+            listener.onMessageRecieved(message);
+        } 
+    }
+
+    private boolean isMessageFromActive(Message message) {
+        System.out.println("Checking if message from active|" + message.getServer() + "|" + activeModel.toString() + "|" + message.getServer().equals(activeModel.toString()) + "||" + message.getTarget() + "|" + activeTargetName + "|" + message.getTarget().equals(activeTargetName)+ "|||" + (message.getServer().equals(activeModel.toString()) && message.getTarget().equals(activeTargetName))); 
+        return message.getServer().equals(activeModel.toString()) && message.getTarget().equals(activeTargetName); 
+    }
+
+    private boolean isTargetInActive(Target target) {
+        return target.getServer().equals(activeModel.toString()) && target.getName().equals(activeTargetName);
     }
 
     //Listeners   

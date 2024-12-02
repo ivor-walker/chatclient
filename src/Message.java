@@ -26,12 +26,13 @@ public class Message {
         private String messageContent;
         private LocalDateTime serverTime;
         private LocalDateTime clientTime;
+        private String serverString;
 
-        public Message(String sender, String target, String messageContent, String serverTime) {
+        public Message(String sender, String target, String messageContent, String serverTime, String serverString) {
                 this.sender = sender;
                 this.target = target;
                 this.messageContent = messageContent;
-
+                this.serverString = serverString;
                 this.serverTime = LocalDateTime.parse(serverTime);
                 this.clientTime = LocalDateTime.now();
         }
@@ -49,5 +50,17 @@ public class Message {
 	    public String getTarget() {
 	    	return target;
 	    }
+
+        public String getServer() {
+            return serverString;
+        }
+
+        public String getSender() {
+            return sender;
+        }
+
+        public String getMessage() {
+            return messageContent;
+        }
 }
 

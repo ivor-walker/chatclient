@@ -47,6 +47,7 @@ public class Target {
         }
 
         public void sendMessage(String target, String messageContent) {
+                System.out.println("Target: Message sent from " + getServer());
                 model.sendMessage(target, messageContent);
         }
 
@@ -56,6 +57,10 @@ public class Target {
 
         public String getName() {
                 return name;
+        }
+    
+        public String getServer() {
+            return model.toString();
         }
 
 	    public boolean isChannel() {

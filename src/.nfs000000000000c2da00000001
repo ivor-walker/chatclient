@@ -1,0 +1,12 @@
+./ServerModel.java:659: error: cannot find symbol
+                listener.onMessageReceived(message);
+                        ^
+  symbol:   method onMessageReceived(Message)
+  location: variable listener of type TargetListener
+1 error
+./ServerModel.java:659: error: cannot find symbol
+                listener.onMessageReceived(message);
+                        ^
+  symbol:   method onMessageReceived(Message)
+  location: variable listener of type TargetListener
+1 error
