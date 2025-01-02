@@ -19,6 +19,10 @@ import java.time.format.DateTimeFormatter;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
+/**
+ * Channel: specific type of Target that represents a channel in the server
+ */
+
 public class Channel extends Target {
         private List<String> users;
 

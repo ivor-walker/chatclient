@@ -1,3 +1,8 @@
+/**
+ * Listener interface for classes that need to listen for changes to active server
+ */
+
 public interface ActiveServerListener {
-        void onSetActiveServer(ServerModel activeModel);
+    // Listen for a new active server
+    void onSetActiveServer(ServerModel activeModel);
 }
