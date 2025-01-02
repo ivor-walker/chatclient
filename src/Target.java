@@ -20,51 +20,100 @@ import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.util.Comparator;
 
+/**
+ * Target class represents a target for messages
+ * It can be a user or a channel
+ */
 public class Target {
-        protected String name;
-        protected List<Message> messages = new ArrayList<>();
-        protected ServerModel model;
+    // Name of target 
+    protected String name;
+    // Message history of target 
+    protected List<Message> messages = new ArrayList<>();
+    // Server model target exists in (i.e server that a user is connected t or server that a channel is on)
+    protected ServerModel model;
 
-        public Target(ServerModel model, String name) {
-                this.name = name;
-                this.model = model;
-        }
+    /**
+     * Constructor for Target
+     * @param model ServerModel that target exists in
+     * @param name Name of target
+     */
+    public Target(ServerModel model, String name) {
+            this.name = name;
+            this.model = model;
+    }
 
-        public List<Message> getMessages() {
-                sortMessages();
-                return messages;
-        }
+    /**
+     * Getter for message history
+     * @return List of messages
+     */
+    public List<Message> getMessages() {
+        // Sort messages by server time before returning
+        sortMessages();
 
-        public LocalDateTime getServerTimeOfLastMessage() {
-                sortMessages();
-                return messages.get(messages.size() - 1).getServerTime();
-        }
+        return messages;
+    }
 
-        public void sortMessages() {
-                messages.sort(
-                        Comparator.comparing(Message::getServerTime)
-                );
-        }
+    /**
+     * Get time of most recent message in target
+     * @return LocalDateTime of most recent message
+     */
+    public LocalDateTime getServerTimeOfLastMessage() {
+        // Sort messages by server time 
+        sortMessages();
+        // Return time of most recent message
+        return messages.get(messages.size() - 1).getServerTime();
+    }
 
-        public void sendMessage(String target, String messageContent) {
-                System.out.println("Target: Message sent from " + getServer());
-                model.sendMessage(target, messageContent);
-        }
+    /**
+     * Sort messages by server time in place 
+     */
+    public void sortMessages() {
+        messages.sort(
+                Comparator.comparing(Message::getServerTime)
+        );
+    }
 
-        public void addMessage(Message message) {
-                messages.add(message);
-        }
+    /**
+     * Send message to target
+     * @param target Name of target
+     * @param messageContent Content of message
+     */
+    public void sendMessage(String target, String messageContent) {
+        // Send message via server model     
+        model.sendMessage(target, messageContent);
+    }
 
-        public String getName() {
-                return name;
-        }
-    
-        public String getServer() {
-            return model.toString();
-        }
+    /**
+     * Add message to target's message history
+     * @param message Message to add
+     */
+    public void addMessage(Message message) {
+            messages.add(message);
+    }
 
-	    public boolean isChannel() {
-	    	return false;
-	    }
+    /**
+     * Get name of target
+     * @return Name of target
+     */
+    public String getName() {
+            return name;
+    }
+
+    /**
+     * Get server model target exists in 
+     * @return ServerModel target exists in
+     */
+    public String getServer() {
+        return model.toString();
+    }
+
+    /**
+     * Check if target is a channel
+     * @return False
+     * @see Channel
+     */
+    public boolean isChannel() {
+    	return false;
+    }
 }
 
