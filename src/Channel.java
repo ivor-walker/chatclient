@@ -24,39 +24,76 @@ import java.util.regex.Matcher;
  */
 
 public class Channel extends Target {
-        private List<String> users;
+    // List of users in the channel
+    private List<String> users;
+    
+    /**
+     * Constructor for Channel
+     * @param model ServerModel object
+     * @param name name of the channel
+     * @param users list of users in the channel
+     */
+    public Channel(ServerModel model, String name, String[] users) {
+        // Use target constructor as normal  
+        super(model, name);
+        // Add users to the channel
+        overwriteUsers(users);
+    }
 
-        public Channel(ServerModel model, String name, String[] users) {
-                super(model, name);
-                overwriteUsers(users);
-        }
+    /**
+     * Getter for users
+     * @return list of users in the channel
+     */
+    public List<String> getUsers() {
+            return users;
+    }
 
-        public List<String> getUsers() {
-                return users;
-        }
+    /**
+     * Adder for users
+     * @param username username to add to the channel
+     */
+    public void addUser(String username) {
+            users.add(username);
+    }
 
-        public void addUser(String username) {
-                users.add(username);
-        }
+    /**
+     * Remover for users
+     * @param username username to remove from the channel
+     */
+    public void removeUser(String username) {
+            users.remove(username);
+    }
 
-        public void removeUser(String username) {
-                users.remove(username);
-        }
+    /**
+     * Method for the client to join the channel     
+     */
+    public void joinChannel() {
+        // Get the serverModel to join a channel with the name of this object's channel
+        model.joinChannel(name);
+    }
+    
+    /**
+     * Method for the client to leave (part) the channel
+     */
+    public void partChannel() {
+        model.partChannel(name);
+    }
 
-        public void joinChannel() {
-            model.joinChannel(name);
-        }
+    /**
+     * Overwrite the users in the channel
+     * @param users list of users to overwrite the current users
+     */
+    public void overwriteUsers(String[] users) {
+            this.users = new ArrayList<>(Arrays.asList(users));
+    }
 
-        public void partChannel() {
-            model.partChannel(name);
-        }
-
-        public void overwriteUsers(String[] users) {
-                this.users = new ArrayList<>(Arrays.asList(users));
-        }
-
-        public boolean isChannel() {
-            return true;
-        }
+    /**
+     * Override Target's isChannel method
+     * @return true
+     */
+    @Override
+    public boolean isChannel() {
+        return true;
+    }
 }
                                       
