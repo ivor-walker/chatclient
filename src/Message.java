@@ -19,48 +19,90 @@ import java.time.format.DateTimeFormatter;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
-
+/**
+ * Message class to represent a single message sent in a target
+ */
 public class Message {
-        private String sender;
-        private String target;
-        private String messageContent;
-        private LocalDateTime serverTime;
-        private LocalDateTime clientTime;
-        private String serverString;
 
-        public Message(String sender, String target, String messageContent, String serverTime, String serverString) {
-                this.sender = sender;
-                this.target = target;
-                this.messageContent = messageContent;
-                this.serverString = serverString;
-                this.serverTime = LocalDateTime.parse(serverTime);
-                this.clientTime = LocalDateTime.now();
-        }
+    // Data and metadata about the message
+    private String sender;
+    private String target;
+    private String messageContent;
+    private LocalDateTime serverTime;
+    private LocalDateTime clientTime;
+    private String serverString;
 
-        DateTimeFormatter userFriendlyFormat = DateTimeFormatter.ofPattern("E dd-MM-yyyy HH:mm:ss");
-        public String toString() {
-                String userFriendlyClientTime = clientTime.format(userFriendlyFormat);
-                return "[" + userFriendlyClientTime + "] " + sender + ": " + messageContent;
-        }
+    /**
+     * Constructor for a new Message
+     * @param sender the sender of the message
+     * @param target the target of the message
+     * @param messageContent the content of the message
+     * @param serverTime the time the message was sent according to server
+     * @param serverString the server the message was sent from
+     */
+    public Message(String sender, String target, String messageContent, String serverTime, String serverString) {
+        // Set the data and metadata 
+        this.sender = sender;
+        this.target = target;
+        this.messageContent = messageContent;
+        this.serverString = serverString;
+        this.serverTime = LocalDateTime.parse(serverTime);
+        this.clientTime = LocalDateTime.now();
+    }
 
-        public LocalDateTime getServerTime() {
-                return this.serverTime;
-        }
+    // Format date and time to be user friendly
+    DateTimeFormatter userFriendlyFormat = DateTimeFormatter.ofPattern("E dd-MM-yyyy HH:mm:ss");
 
-	    public String getTarget() {
-	    	return target;
-	    }
+    /**
+     * Get a user friendly string representation of the message
+     * @return a string representation of the message
+     */
+    public String toString() {
+        // Format the client time to be user friendly 
+        String userFriendlyClientTime = clientTime.format(userFriendlyFormat);
+        
+        // Return the message in the format: [clientTime] sender: messageContent
+        return "[" + userFriendlyClientTime + "] " + sender + ": " + messageContent;
+    }
 
-        public String getServer() {
-            return serverString;
-        }
+    /**
+     * Getter for serverTime
+     * @return the serverTime of the message
+     */
+    public LocalDateTime getServerTime() {
+            return this.serverTime;
+    }
 
-        public String getSender() {
-            return sender;
-        }
+    /**
+     * Getter for target that message was sent in
+     * @return the target of the message
+     */
+    public String getTarget() {
+    	return target;
+    }
 
-        public String getMessage() {
-            return messageContent;
-        }
+    /**
+     * Getter for server that message was sent in
+     * @return the server of the message
+     */
+    public String getServer() {
+        return serverString;
+    }
+
+    /**
+     * Getter for sender of the message
+     * @return the sender of the message
+     */
+    public String getSender() {
+        return sender;
+    }
+
+    /**
+     * Getter for the message content
+     * @return the message content
+     */
+    public String getMessage() {
+        return messageContent;
+    }
 }
 
