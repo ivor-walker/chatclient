@@ -1,4 +1,4 @@
-Graphical IRC client written in Java, using Swing.
+# Graphical IRC client 
 
 ## Features
 - Connect to a running chat server and listen for messages.
