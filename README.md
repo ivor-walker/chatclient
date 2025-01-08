@@ -18,7 +18,7 @@
 
 ## Server protocol
 This client is designed to connect to a server that uses a simplified version of the IRC protocol. Any errors should be reported to the client in this format:
-ERROR \<error message>
+ERROR \<error message>.
 
 The server should support the following commands: 
 
