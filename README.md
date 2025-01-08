@@ -17,7 +17,10 @@
 - Run the .jar file in the build directory
 
 ## Server protocol
-This client is designed to connect to a server that uses a simplified version of the IRC protocol. The server should support the following commands: 
+This client is designed to connect to a server that uses a simplified version of the IRC protocol. Any errors should be reported to the client in this format:
+ERROR \<error message>
+
+The server should support the following commands: 
 
 NICK \<nickname>
 attempts to register with the server as a chat user, with the given nickname
@@ -50,5 +53,3 @@ requests a response from the server, which should include the given message
 
 INFO
 requests information about the server
-
-Any errors should be reported to the client with a message that starts with "ERROR :".
