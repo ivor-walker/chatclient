@@ -19,33 +19,33 @@
 ## Server protocol
 This client is designed to connect to a server that uses a simplified version of the IRC protocol. The server should support the following commands: 
 
-NICK <nickname>
+NICK \<nickname>
 attempts to register with the server as a chat user, with the given nickname
 
 QUIT
 terminates the connection to the server
 
-JOIN <channel>
+JOIN \<channel>
 joins the channel with the given name, which must start with a hash symbol
 
-PART <channel>
+PART \<channel>
 leaves the channel with the given name
 
-NAMES <channel>
+NAMES \<channel>
 requests a list of all users in the given channel
 
 LIST
 requests a list of all channels that currently exist on the server
 
-PRIVMSG <target> :<message>
+PRIVMSG \<target> \<message>
 sends a chat message to the given channel or directly to a user
-- <target> should be the name of a channel or user
-- <message> is the text of the message to be displayed
+- \<target> should be the name of a channel or user
+- \<message> is the text of the message to be displayed
 
 TIME
 requests the current time on the server
 
-PING <message>
+PING \<message>
 requests a response from the server, which should include the given message
 
 INFO
